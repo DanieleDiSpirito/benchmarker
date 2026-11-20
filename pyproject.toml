@@ -1,0 +1,19 @@
+[project]
+name = "benchmarker"
+version = "1.0.0"
+description = "Benchmark deterministico di LLM via CLI in abbonamento (Antigravity agy, Codex) con token, costo API stimato e quota 5h/settimanale"
+requires-python = ">=3.10"
+dependencies = [
+    "pyarrow>=15",
+    "numpy>=1.26",
+    "math-verify[antlr4_13_2]>=0.7",
+    "langdetect>=1.0.9",
+    "nltk>=3.9",
+    "absl-py>=2.0",
+    "immutabledict>=4.0",
+    "matplotlib>=3.8",
+    "reportlab>=4.0",
+]
+
+[tool.uv]
+package = false

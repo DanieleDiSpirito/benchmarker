@@ -1,0 +1,82 @@
+{
+ "preset": "mini",
+ "created": "2026-11-20T12:07:31+00:00",
+ "benchmarks": {
+  "humaneval_plus": {
+   "n": 6,
+   "pool_sha256_16": "a4dc3c72acbc7a50",
+   "ids": [
+    "HumanEval/65",
+    "HumanEval/112",
+    "HumanEval/41",
+    "HumanEval/1",
+    "HumanEval/99",
+    "HumanEval/146"
+   ]
+  },
+  "mbpp_plus": {
+   "n": 6,
+   "pool_sha256_16": "3e01c36f82102691",
+   "ids": [
+    "Mbpp/600",
+    "Mbpp/252",
+    "Mbpp/750",
+    "Mbpp/737",
+    "Mbpp/70",
+    "Mbpp/619"
+   ]
+  },
+  "aime_2026": {
+   "n": 6,
+   "pool_sha256_16": "f584367c63fc218b",
+   "ids": [
+    "AIME2026/22",
+    "AIME2026/1",
+    "AIME2026/27",
+    "AIME2026/16",
+    "AIME2026/28",
+    "AIME2026/25"
+   ]
+  },
+  "math500_l5": {
+   "n": 6,
+   "pool_sha256_16": "992cdb1c5240ce00",
+   "ids": [
+    "test/intermediate_algebra/2015.json",
+    "test/counting_and_probability/870.json",
+    "test/intermediate_algebra/955.json",
+    "test/algebra/1031.json",
+    "test/geometry/229.json",
+    "test/algebra/509.json"
+   ]
+  },
+  "mmlu_pro": {
+   "n": 8,
+   "pool_sha256_16": "4518360fd528ed11",
+   "ids": [
+    "MMLUPro/7118",
+    "MMLUPro/5581",
+    "MMLUPro/7412",
+    "MMLUPro/9936",
+    "MMLUPro/3479",
+    "MMLUPro/7694",
+    "MMLUPro/5167",
+    "MMLUPro/7735"
+   ]
+  },
+  "ifeval": {
+   "n": 8,
+   "pool_sha256_16": "26231d309a74b9be",
+   "ids": [
+    "IFEval/1154",
+    "IFEval/1781",
+    "IFEval/332",
+    "IFEval/3672",
+    "IFEval/2162",
+    "IFEval/3748",
+    "IFEval/2787",
+    "IFEval/1000"
+   ]
+  }
+ }
+}

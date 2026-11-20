@@ -1,0 +1,11 @@
+{
+ "runs": [
+  {
+   "started": "2026-11-20T12:45:35+00:00",
+   "cli_version": "2.1.329 (Claude Code)",
+   "preset": "mini",
+   "os": "Darwin arm64",
+   "python": "3.14.7"
+  }
+ ]
+}

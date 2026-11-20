@@ -116,7 +116,7 @@ def fig_value(data, models, summaries, path):
             plotted += 1
         if plotted:
             ax.set_xscale("log")
-            ax.margins(x=0.25, y=0.12)
+            ax.margins(x=0.4, y=0.15)
         ax.set_xlabel(xlabel)
         ax.set_title(title, loc="left")
         pending.append((ax, labels))

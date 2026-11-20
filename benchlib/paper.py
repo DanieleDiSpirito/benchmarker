@@ -494,6 +494,9 @@ def _story(data, models, summ, pending, figs):
               f"The main runs use <i>{effort_txt}</i> effort; only wrong answers are retried at high. A full effort "
               "ladder (low for every task, medium for the failures, then high), reporting single and cumulative "
               "accuracy per step, would show the cheapest effort that solves each task.",
+              "The benchmark suite was selected by Claude (Anthropic), one of the model families under test, so it "
+              "may favour tasks on which Claude models do well. In the near future we will repeat the study on "
+              "suites selected by models outside the comparison, such as DeepSeek and Kimi.",
               "Some API prices come from third-party sources (†)."]:
         S.append(B(t))
 

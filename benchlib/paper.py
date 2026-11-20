@@ -20,7 +20,7 @@ from reportlab.platypus import (BaseDocTemplate, Frame, Image, KeepTogether, Nex
 
 from . import charts
 from .clusters import cluster
-from .analysis import MIN_STEPS, STALL_MAX_TPS, STALL_MIN_S, collect, model_summary, quota_text
+from .analysis import MIN_STEPS, STALL_MAX_TPS, STALL_MIN_S, collect, escalation, model_summary, quota_text
 from . import config as cfg
 from .config import all_models, backend_settings, price_for
 from .datasets import bench_info, is_legacy_suite
@@ -152,13 +152,16 @@ def build_paper(out: str | None = None) -> Path:
     pending = [] if is_legacy_suite(data["lock"]) else \
         [m for (b, k), m in all_models().items() if not any(x["backend"] == b and x["key"] == k for x in models)]
     with tempfile.TemporaryDirectory(prefix="bench_fig_") as figdir:
-        figs = {n: os.path.join(figdir, f"{n}.png") for n in ("acc", "value", "tok", "quota", "clusters")}
+        figs = {n: os.path.join(figdir, f"{n}.png") for n in ("acc", "value", "tok", "quota", "clusters", "esc")}
         charts.fig_accuracy(data, models, figs["acc"])
         charts.fig_value(data, models, summ, figs["value"])
         charts.fig_tokens(data, models, summ, figs["tok"])
         charts.fig_quota(data, models, summ, figs["quota"])
         data["clusters"] = cluster(models, summ)
         charts.fig_clusters(data["clusters"], summ, figs["clusters"])
+        data["escalation"] = [(m, e) for m in models if (e := escalation(data, m)) and e["rerun"]]
+        if data["escalation"]:
+            charts.fig_escalation(data["escalation"], figs["esc"])
         Doc(out_path).build(_story(data, models, summ, pending, figs))
     return out_path
 
@@ -287,6 +290,9 @@ def _story(data, models, summ, pending, figs):
         "provider (queue or rate-limit retries), not generating: they are excluded from time figures only.",
         "<b>Quota</b>: change of the 5-hour and weekly counters read from the CLI before and after each block of "
         "requests, and the resulting <b>capacity</b> (tasks per full 5-hour window or week).",
+        "<b>Escalation</b>: every task a model got wrong at the main effort is re-run once at <i>high</i> effort, "
+        "kept apart from the main results. We report how many are recovered and the cumulative accuracy "
+        "(main effort plus recovered tasks), with the extra cost, time and quota they took.",
         "<b>Clusters</b>: models are grouped by consumption (cost and output tokens per answer) and speed (median "
         "time) with k-means on standardised log values; the number of groups is the one with the best silhouette.",
     ]:
@@ -387,7 +393,44 @@ def _story(data, models, summ, pending, figs):
     if cl["skipped"]:
         S.append(P("Not clustered (missing cost or time): " + ", ".join(m["label"] for m in cl["skipped"]) + ".", "cap"))
 
-    S += [NextPageTemplate("landscape"), PageBreak(), P("4.2 Per-benchmark detail", "h2")]
+    esc = data.get("escalation") or []
+    if esc:
+        S += [PageBreak(), P("4.2 Escalating wrong answers to high effort", "h2"),
+              P("Each task a model got wrong at the main effort was re-run once at <i>high</i> effort. A large recovery "
+                "means the model knew how to solve the task and simply did not think enough; a small one means the "
+                "error is a real limit of the model. The cost of escalation is what a student pays in quota for the "
+                "second attempt.")]
+        S.append(_fig(figs["esc"], pw, "Figure 6. Accuracy at the main effort and after re-running the wrong answers at "
+                      "high effort (cumulative)."))
+        hdr = ["Model", "Recovered<br/>/ wrong", "Recovery<br/>rate", "Acc.<br/>main", "Acc.<br/>cumul.",
+               "Cost per<br/>re-run", "Output<br/>per re-run", "Median<br/>time", "Extra<br/>5h quota", "Extra<br/>weekly"]
+        rows = [hdr]
+        for m, e in esc:
+            n = max(1, e["attempts"])
+            q5, qw = e["quota"]["5h"], e["quota"]["weekly"]
+            rows.append([m["label"] + ("" if e["complete"] else " *"), f"{e['recovered']} / {e['wrong']}",
+                         pct(e["recovery_rate"], 0), pct(e["acc_medium"]), pct(e["acc_cumulative"]),
+                         usd(e["cost"] / n), ktok(e["tokens"].get("output", 0) / n),
+                         (num(e["lat_p50"], 0) + " s") if e["lat_p50"] else "–",
+                         quota_text(q5["used"], q5["method"], q5["bound"]), quota_text(qw["used"], qw["method"], qw["bound"])])
+        w = [30, 17, 15, 13, 14, 15, 15, 14, 15, 15]
+        scale = pw / (sum(w) * mm)
+        S += [table(rows, [x * mm * scale for x in w], bold_first_col=True),
+              P("Table 6. Escalation of wrong answers to high effort. Accuracies are means over benchmarks; quota is the "
+                "extra share used by the re-runs (≈ coarse, &lt;1% below resolution). * = escalation not finished.",
+                "cap")]
+        bcols = [b for b in benches if any(b in e["benches"] for _, e in esc)]
+        rows = [["Model"] + [bench_info(b)["label"] for b in bcols]]
+        for m, e in esc:
+            rows.append([m["label"]] + [
+                (f"{e['benches'][b]['recovered']} / {e['benches'][b]['wrong']}" if e["benches"].get(b, {}).get("wrong")
+                 else "–") for b in bcols])
+        cw = (pw - 30 * mm) / max(1, len(bcols))
+        S += [KeepTogether([table(rows, [30 * mm] + [cw] * len(bcols), bold_first_col=True),
+                            P("Table 7. Recovered / wrong answers per benchmark (– = nothing wrong at the main effort).",
+                              "cap")])]
+
+    S += [NextPageTemplate("landscape"), PageBreak(), P("4.3 Per-benchmark detail", "h2")]
     hdr = ["Benchmark", "Model", "Acc.", "95% CI", "n", "Err.", "Input", "Output", "Reasoning", "Cost per<br/>answer",
            "Median<br/>time", "p90<br/>time", "5-hour<br/>quota", "Weekly<br/>quota"]
     rows = [hdr]
@@ -440,8 +483,9 @@ def _story(data, models, summ, pending, figs):
     for t in ["Small samples per benchmark to preserve the quota; a larger preset (e.g. <i>standard</i>) gives firmer numbers.",
               "Public datasets may appear in training data" + ("." if legacy else
                                                                  "; HMMT February 2026 is the most recent set."),
-              f"Only <i>{effort_txt}</i> effort was tested; sweeping low/high effort would show how each plan trades quality "
-              "for quota.",
+              f"The main runs use <i>{effort_txt}</i> effort; only wrong answers are retried at high. A full effort "
+              "ladder (low for every task, medium for the failures, then high), reporting single and cumulative "
+              "accuracy per step, would show the cheapest effort that solves each task.",
               "Some API prices come from third-party sources (†)."]:
         S.append(B(t))
 

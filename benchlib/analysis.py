@@ -307,3 +307,64 @@ def print_status() -> None:
               f"{quota_text(s['q_weekly'], s['q_weekly_method'], s['q_weekly_bound']):>8}")
     print("~ derived from the other window (account-wide weekly/5h ratio); ≈ below 10 resolution steps; "
           "<1% nothing moved at 1-point resolution")
+
+
+# ---------------------------------------------------------------- escalation (wrong at medium -> high)
+def escalation(data: dict, model: dict, effort: str = "high") -> dict | None:
+    """Recovery of a model's wrong answers when re-run at a higher effort. None if not run."""
+    lock = data["lock"]
+    base_dir = cfg.RESULTS_DIR / model["backend"] / model["key"]
+    hi_dir = base_dir / effort
+    if not hi_dir.exists():
+        return None
+    pricing = data["pricing"]
+    res = data["resolution"].get(model["backend"], 0.0)
+    out = {"effort": effort, "benches": {}, "wrong": 0, "rerun": 0, "recovered": 0, "n_done": 0, "correct": 0,
+           "tokens": defaultdict(int), "cost": 0.0, "attempts": 0, "lat": [], "reasoned": 0, "ok": 0,
+           "quota": {}}
+    blocks = load_records(hi_dir / "quota.jsonl")
+    accs_med, accs_cum = [], []
+    for bench, spec in lock["benchmarks"].items():
+        ids = set(spec["ids"])
+        med = {}
+        for r in load_records(base_dir / f"{bench}.jsonl"):
+            if r["id"] in ids:
+                med[r["id"]] = r
+        if not med:
+            continue
+        wrong = {i for i, r in med.items() if not r["grade"]["correct"]}
+        recs = [r for r in load_records(hi_dir / f"{bench}.jsonl") if r["id"] in wrong]
+        hi = {}
+        for r in recs:
+            hi[r["id"]] = r
+        rec = sum(1 for r in hi.values() if r["grade"]["correct"])
+        n, c = len(med), len(med) - len(wrong)
+        out["benches"][bench] = {"n": n, "wrong": len(wrong), "rerun": len(hi), "recovered": rec}
+        out["wrong"] += len(wrong); out["rerun"] += len(hi); out["recovered"] += rec
+        out["n_done"] += n; out["correct"] += c
+        accs_med.append(c / n); accs_cum.append((c + rec) / n)
+        for r in recs:
+            t = r["call"]["tokens"]
+            for kk in ("input", "cached_input", "cache_write", "output", "reasoning"):
+                out["tokens"][kk] += int(t.get(kk, 0))
+            out["cost"] += cost_usd(t, price_for(r["price_key"], r["started"], pricing)) or 0.0
+            out["attempts"] += 1
+        for r in hi.values():
+            if r["call"]["ok"]:
+                out["ok"] += 1
+                out["reasoned"] += r["call"]["tokens"].get("reasoning", 0) > 0
+                if not is_stalled(r):
+                    out["lat"].append(r["latency_s"])
+    out["acc_medium"] = statistics.mean(accs_med) if accs_med else None
+    out["acc_cumulative"] = statistics.mean(accs_cum) if accs_cum else None
+    out["recovery_rate"] = out["recovered"] / out["rerun"] if out["rerun"] else None
+    out["lat_p50"] = statistics.median(out["lat"]) if out["lat"] else None
+    out["thinking_rate"] = out["reasoned"] / out["ok"] if out["ok"] else None
+    out["complete"] = out["rerun"] == out["wrong"]
+    for w in ("5h", "weekly"):
+        vals = [d for d, ok in (_block_delta(b, w) for b in blocks) if ok]
+        used = sum(vals) if vals else None
+        method = "coarse" if res and used else ("bound" if res and used == 0 else "measured")
+        out["quota"][w] = {"used": None if method == "bound" else used, "method": method,
+                           "bound": res if method == "bound" else None}
+    return out

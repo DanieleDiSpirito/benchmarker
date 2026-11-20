@@ -6,6 +6,7 @@
   uv run bench.py run --backend agy       run the suite on Antigravity (Gemini)
   uv run bench.py run --backend claude    run the suite on Claude Code (Opus, Sonnet, Haiku)
   uv run bench.py run --backend codex     run the suite on Codex (GPT) and extend the results
+  uv run bench.py escalate --backend agy   re-run at high effort every task a model got wrong at medium
   uv run bench.py status                  progress, tokens, cost and quota per model
   uv run bench.py regrade                 re-score stored replies with the current graders
   uv run bench.py paper                   rebuild paper/benchmark_paper.pdf from every result present
@@ -41,6 +42,18 @@ def main(argv=None) -> int:
     p.add_argument("--no-wait", action="store_true", help="stop instead of waiting for the 5-hour window to reset")
     p.add_argument("--no-paper", action="store_true", help="do not rebuild the paper at the end")
 
+    p = sub.add_parser("escalate", help="re-run at a higher effort every task a model got wrong")
+    p.add_argument("--backend", required=True, choices=["agy", "claude", "codex"])
+    p.add_argument("--models", nargs="*", help="subset of model keys from config/models.toml")
+    p.add_argument("--effort", default="high")
+    p.add_argument("--workers", type=int)
+    p.add_argument("--timeout", type=int, default=1800)
+    p.add_argument("--reserve-5h", type=float, default=3.0)
+    p.add_argument("--reserve-weekly", type=float, default=3.0)
+    p.add_argument("--max-weekly-per-model", type=float)
+    p.add_argument("--no-wait", action="store_true")
+    p.add_argument("--no-paper", action="store_true")
+
     sub.add_parser("status", help="summary of the results present")
     sub.add_parser("regrade", help="re-score every stored reply with the current graders (no model calls)")
 
@@ -67,6 +80,21 @@ def main(argv=None) -> int:
                 reserve_weekly=a.reserve_weekly / 100,
                 max_weekly=None if a.max_weekly_per_model is None else a.max_weekly_per_model / 100,
                 wait=not a.no_wait)
+        except KeyboardInterrupt:
+            print("\nInterrupted: saved results stay valid, run the same command again to resume.")
+            return 130
+        if not a.no_paper:
+            from benchlib.paper import build_paper
+            print(f"Paper: {build_paper()}")
+        return 0
+
+    if a.cmd == "escalate":
+        from benchlib.runner import escalate
+        try:
+            escalate(a.backend, a.models, effort=a.effort, workers=a.workers, timeout=a.timeout,
+                     reserve_5h=a.reserve_5h / 100, reserve_weekly=a.reserve_weekly / 100,
+                     max_weekly=None if a.max_weekly_per_model is None else a.max_weekly_per_model / 100,
+                     wait=not a.no_wait)
         except KeyboardInterrupt:
             print("\nInterrupted: saved results stay valid, run the same command again to resume.")
             return 130

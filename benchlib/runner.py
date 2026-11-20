@@ -130,11 +130,18 @@ def run(backend_name: str, models: list[str] | None, benches: list[str] | None, 
             log(f"  [{model['key']}] stopped: {stopped}. Run the same command again to resume.")
 
 
-def _run_model(backend, model, lock, benches, workers, timeout, retries, guard, check_every, log):
-    mdir = RESULTS_DIR / backend.name / model["key"]
+def _run_model(backend, model, lock, benches, workers, timeout, retries, guard, check_every, log,
+               mdir=None, only: dict[str, set] | None = None):
+    """Run `model` on the locked suite. `mdir` overrides the output folder and `only` restricts
+    each benchmark to a set of item ids (used by the high-effort escalation phase)."""
+    mdir = mdir or RESULTS_DIR / backend.name / model["key"]
     qpath = mdir / "quota.jsonl"
     for bench in benches:
         items = suite_items(lock, bench)
+        if only is not None:
+            items = [it for it in items if it["id"] in only.get(bench, set())]
+            if not items:
+                continue
         rpath = mdir / f"{bench}.jsonl"
         past = load_records(rpath)
         attempts: dict[str, int] = {}
@@ -240,7 +247,7 @@ def regrade(log=print) -> None:
     if not lock:
         raise SystemExit("No suite lock: nothing to regrade.")
     pools = {b: {it["id"]: it for it in suite_items(lock, b)} for b in lock["benchmarks"]}
-    for path in sorted(RESULTS_DIR.glob("*/*/*.jsonl")):
+    for path in sorted(list(RESULTS_DIR.glob("*/*/*.jsonl")) + list(RESULTS_DIR.glob("*/*/*/*.jsonl"))):
         bench = path.stem
         if bench not in pools:
             continue
@@ -266,3 +273,56 @@ def _timed_call(backend, model, prompt, schema, timeout):
         from .backends.base import CallResult
         res = CallResult(ok=False, error=f"exception: {e}")
     return res, started, now_iso(), time.perf_counter() - t0
+
+
+# ---------------------------------------------------------------- escalation phase
+def wrong_ids(backend: str, key: str, lock: dict) -> dict[str, set]:
+    """Items a model got wrong in its main (medium) run: last attempt per item not correct."""
+    out = {}
+    for bench, spec in lock["benchmarks"].items():
+        final = {}
+        for r in load_records(RESULTS_DIR / backend / key / f"{bench}.jsonl"):
+            if r["id"] in spec["ids"]:
+                final[r["id"]] = r
+        out[bench] = {i for i, r in final.items() if not r["grade"]["correct"]}
+    return out
+
+
+def effort_variant(model: dict, effort: str) -> dict:
+    """The same model at another effort: agy encodes it in the model id, the others take a flag."""
+    m = dict(model)
+    old = model.get("effort")
+    if old and m["cli_model"].endswith(f"-{old}"):
+        m["cli_model"] = m["cli_model"][: -len(old)] + effort
+    m["effort"] = effort
+    return m
+
+
+def escalate(backend_name: str, models: list[str] | None, effort: str = "high", workers: int | None = None,
+             timeout: int = 1800, retries: int = 2, reserve_5h: float = 0.03, reserve_weekly: float = 0.03,
+             max_weekly: float | None = None, wait: bool = True, check_every: int = 5, log=print) -> None:
+    """Re-run, at `effort`, every task each model got wrong in its main run. Results go to
+    results/<cli>/<model>/<effort>/ and never alter the main (medium) results."""
+    from .suite import read_lock
+
+    lock = read_lock()
+    if not lock:
+        raise SystemExit("No suite lock: run the main benchmark first.")
+    backend = get_backend(backend_name)
+    workers = workers or int(backend_settings(backend_name).get("workers", 3))
+    cfg_models = backend_models(backend_name)
+    if models:
+        cfg_models = [m for m in cfg_models if m["key"] in models]
+    for model in cfg_models:
+        wrong = wrong_ids(backend_name, model["key"], lock)
+        n = sum(len(v) for v in wrong.values())
+        if not n:
+            log(f"  [{model['key']}] nothing to escalate (no main results or no wrong answers)")
+            continue
+        hi = effort_variant(model, effort)
+        log(f"  [{model['key']}] escalating {n} wrong answers to effort '{effort}' ({hi['cli_model']})")
+        stopped = _run_model(backend, hi, lock, list(lock["benchmarks"]), workers, timeout, retries,
+                             QuotaGuard(backend, hi, reserve_5h, reserve_weekly, max_weekly, wait, log),
+                             check_every, log, mdir=RESULTS_DIR / backend_name / model["key"] / effort, only=wrong)
+        if stopped:
+            log(f"  [{model['key']}] stopped: {stopped}. Run the same command again to resume.")

@@ -272,3 +272,26 @@ def place_labels(ax, items, fontsize=6.8):
                             fontsize=fontsize, color=INK, zorder=5)
             best = (t, t.get_window_extent(r))
         boxes.append(best[1])
+
+
+def fig_escalation(rows, path):
+    """rows: [(model, esc)]. Medium accuracy (solid) plus what high effort recovered (hatched)."""
+    fig, ax = plt.subplots(figsize=(7.0, 0.9 + 0.36 * len(rows)))
+    y = list(range(len(rows)))[::-1]
+    for yy, (m, e) in zip(y, rows):
+        col = PLAN_COLORS.get(m["backend"], MUTED)
+        base, cum = 100 * e["acc_medium"], 100 * e["acc_cumulative"]
+        ax.barh(yy, base, color=col, height=0.6, edgecolor=SURFACE, linewidth=1)
+        if cum > base:
+            ax.barh(yy, cum - base, left=base, color=SURFACE, height=0.6, edgecolor=col, hatch="////", linewidth=1)
+        ax.text(cum + 1.5, yy, f"{base:.0f}% → {cum:.0f}%  (+{cum - base:.0f})", va="center", fontsize=7, color=INK)
+    ax.set_yticks(y, [m["label"] for m, _ in rows], fontsize=7.5)
+    ax.set_xlim(0, 125)
+    ax.set_xticks([0, 25, 50, 75, 100])
+    ax.grid(axis="y", visible=False)
+    ax.set_xlabel("Mean accuracy (%): medium effort (solid) + wrong answers recovered at high effort (hatched)")
+    ax.set_title("Escalating wrong answers to high effort", loc="left")
+    fig.tight_layout(rect=(0, 0, 1, 0.94))
+    plan_legend(fig, [m for m, _ in rows])
+    fig.savefig(path)
+    plt.close(fig)

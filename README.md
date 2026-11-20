@@ -50,6 +50,7 @@ uv run bench.py selftest                       # validate every grader: all chec
 uv run bench.py run --backend agy --preset mini   # first run only: --preset fixes the suite size
 uv run bench.py run --backend claude
 uv run bench.py run --backend claude --models claude-haiku-5-5   # a single model
+uv run bench.py escalate --backend agy         # re-run at high effort every task a model got wrong at medium
 uv run bench.py status                         # progress, tokens, cost and quota per model
 uv run bench.py paper                          # rebuild the PDF only
 uv run bench.py regrade                        # re-score stored replies with the current graders
@@ -70,6 +71,14 @@ same command again. When the 5-hour window is nearly used up the runner waits fo
 
 **While a backend is running, do not use the same account for anything else** (for example no other Claude Code
 session during `--backend claude`): quota is measured as the difference between two readings of the account.
+
+## Escalation to high effort
+
+The main runs use **medium** effort. `bench.py escalate --backend <cli>` then re-runs, once at **high** effort, every
+task each model got wrong; results go to `results/<cli>/<model>/high/` and never change the main results. The
+paper reports, per model, how many wrong answers high effort recovers, the cumulative accuracy and the extra cost,
+time and quota. Run it after the main run of that CLI has finished (it resumes like `run`; if it is launched
+earlier it only covers the answers already scored). A full low → medium → high ladder is left as future work.
 
 ## Extending the paper with Codex (on another machine)
 

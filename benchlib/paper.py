@@ -210,7 +210,8 @@ def _story(data, models, summ, pending, figs):
         "A student choosing a $20 subscription can find endless comparisons of model quality, but quality is only "
         "half of the answer: a very strong model that can be used for five prompts a week is worth less than a weaker "
         "one that can be used all day. We compare the flagship and the fast models of the $20 plans of OpenAI, "
-        f"Anthropic and Google through their own CLIs, on {len(benches)} hard benchmarks scored without any LLM judge "
+        f"Anthropic and Google through their own CLIs, on {len(benches)} {'' if legacy else 'hard '}benchmarks scored "
+        "without any LLM judge "
         f"({n_items} tasks per model), all at <i>{effort_txt}</i> reasoning effort. For every answer we measure the cost it "
         "would have through the API, the input, output and reasoning tokens, the response time and, above all, the "
         "share of the 5-hour and weekly limits it consumes, from which we derive how many tasks each plan really allows.")

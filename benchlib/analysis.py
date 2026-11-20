@@ -11,6 +11,18 @@ from .runner import _parse_iso, load_records
 from .suite import read_lock
 
 RESET_TOLERANCE_S = 20 * 60
+# A request is "stalled" when it took long but produced almost nothing: the time went into
+# server-side queueing or rate-limit retries, not into generation. Such requests keep their
+# tokens, cost, quota and score, but are left out of the time statistics.
+STALL_MIN_S = 120
+STALL_MAX_TPS = 5.0
+
+
+def is_stalled(r: dict) -> bool:
+    lat = r.get("latency_s") or 0
+    return lat > STALL_MIN_S and r["call"]["tokens"].get("output", 0) / lat < STALL_MAX_TPS
+
+
 # A quantised measurement (1-point resolution) is used as-is only when it spans at least
 # this many resolution steps, i.e. when the quantisation error is at most ~10%.
 MIN_STEPS = 10
@@ -120,8 +132,9 @@ def _cell(bench, lock, recs, pricing, blocks) -> dict:
             cost += c
             block_cost[r.get("block")] += c
     ok_fin = [r for r in fin if r["call"]["ok"]]
-    lat = [r["latency_s"] for r in ok_fin]
-    tps = [r["call"]["tokens"]["output"] / r["latency_s"] for r in ok_fin if r["latency_s"] > 0]
+    timed = [r for r in ok_fin if not is_stalled(r)]
+    lat = [r["latency_s"] for r in timed]
+    tps = [r["call"]["tokens"]["output"] / r["latency_s"] for r in timed if r["latency_s"] > 0]
     turns = [r["call"]["turns"] for r in ok_fin if r["call"].get("turns")]
     lo, hi = wilson(correct, n_done)
     cell = {
@@ -132,6 +145,9 @@ def _cell(bench, lock, recs, pricing, blocks) -> dict:
         "lat_mean": statistics.mean(lat) if lat else None, "lat_p50": _pct(lat, 0.5), "lat_p90": _pct(lat, 0.9),
         "tps": statistics.median(tps) if tps else None,
         "turns": statistics.mean(turns) if turns else None,
+        "stalled": len(ok_fin) - len(timed),
+        "thinking_rate": (sum(1 for r in ok_fin if r["call"]["tokens"].get("reasoning", 0) > 0) / len(ok_fin)
+                          if ok_fin else None),
         "first": min((r["started"] for r in recs), default=None),
         "last": max((r["finished"] for r in recs), default=None),
         "blocks": [dict(b, _cost=block_cost.get(b["block"], 0.0)) for b in blocks],
@@ -225,7 +241,9 @@ def model_summary(data: dict, model: dict) -> dict:
     cells = [c for (b, k, _), c in data["cells"].items() if b == model["backend"] and k == model["key"]]
     s = {"n_done": sum(c["n_done"] for c in cells), "n_target": sum(c["n_target"] for c in cells),
          "attempts": sum(c["attempts"] for c in cells), "correct": sum(c["correct"] for c in cells),
-         "errors": sum(c["errors"] for c in cells)}
+         "errors": sum(c["errors"] for c in cells), "stalled": sum(c.get("stalled", 0) for c in cells)}
+    ok = [(c["thinking_rate"], c["n_done"] - c["errors"]) for c in cells if c.get("thinking_rate") is not None]
+    s["thinking_rate"] = (sum(t * n for t, n in ok) / sum(n for _, n in ok)) if ok and sum(n for _, n in ok) else None
     accs = [c["acc"] for c in cells if c["acc"] is not None]
     s["acc_macro"] = statistics.mean(accs) if accs else None
     s["acc_micro"] = s["correct"] / s["n_done"] if s["n_done"] else None

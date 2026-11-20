@@ -20,7 +20,7 @@ from reportlab.platypus import (BaseDocTemplate, Frame, Image, KeepTogether, Nex
 
 from . import charts
 from .clusters import cluster
-from .analysis import MIN_STEPS, collect, model_summary, quota_text
+from .analysis import MIN_STEPS, STALL_MAX_TPS, STALL_MIN_S, collect, model_summary, quota_text
 from . import config as cfg
 from .config import all_models, backend_settings, price_for
 from .datasets import bench_info, is_legacy_suite
@@ -282,7 +282,9 @@ def _story(data, models, summ, pending, figs):
         "reasoning is billed as output). Also reported per correct answer.",
         "<b>Tokens</b>: input (with the cached part), output and reasoning as reported by the CLI, agent system "
         "prompt included. Reasoning is a subset of output, never added twice.",
-        "<b>Time per answer</b>: wall-clock latency of the CLI call (median and 90th percentile).",
+        "<b>Time per answer</b>: wall-clock latency of the CLI call (median and 90th percentile). Requests that "
+        f"took over {STALL_MIN_S} s while producing under {STALL_MAX_TPS:.0f} output tokens/s were waiting on the "
+        "provider (queue or rate-limit retries), not generating: they are excluded from time figures only.",
         "<b>Quota</b>: change of the 5-hour and weekly counters read from the CLI before and after each block of "
         "requests, and the resulting <b>capacity</b> (tasks per full 5-hour window or week).",
         "<b>Clusters</b>: models are grouped by consumption (cost and output tokens per answer) and speed (median "
@@ -299,9 +301,9 @@ def _story(data, models, summ, pending, figs):
     # 4 Results
     S += [NextPageTemplate("landscape"), PageBreak(), P("4. Results", "h1"),
           P("Table 3 is the main result: for each model, quality, cost, tokens, time and quota over the whole suite.")]
-    hdr = ["Model", "Plan", "Mean<br/>acc.", "Tasks", "Cost per<br/>answer", "Cost per<br/>correct", "Input<br/>tok/answer",
-           "Output<br/>tok/answer", "of which<br/>reasoning", "Median<br/>time", "p90<br/>time", "5-hour<br/>quota",
-           "Weekly<br/>quota", "Tasks per<br/>5h window", "Tasks<br/>per week"]
+    hdr = ["Model", "Plan", "Mean<br/>acc.", "Tasks", "Cost per<br/>answer", "Cost per<br/>correct", "Input<br/>tokens",
+           "Output<br/>tokens", "Reason.<br/>tokens", "With<br/>reasoning", "Median<br/>time", "p90<br/>time", "5-hour<br/>quota",
+           "Weekly<br/>quota", "Tasks per<br/>5h", "Tasks per<br/>week"]
     rows = [hdr]
     for m in models:
         s = summ[k(m)]
@@ -312,16 +314,21 @@ def _story(data, models, summ, pending, figs):
             m["label"], settings[m["backend"]].get("plan", m["backend"]).split(" (")[0], pct(s["acc_macro"]),
             f"{s['n_done']}/{s['n_target']}", usd(s["cost"] / n if s["cost"] is not None else None),
             usd(s["cost_per_correct"]), ktok(t.get("input", 0) / n), ktok(t.get("output", 0) / n),
-            ktok(t.get("reasoning", 0) / n), (num(s["lat_p50"], 1) + " s") if s["lat_p50"] else "–",
+            ktok(t.get("reasoning", 0) / n), pct(s["thinking_rate"], 0),
+            (num(s["lat_p50"], 1) + " s") if s["lat_p50"] else "–",
             (num(max(p90), 0) + " s") if p90 else "–", _q(s, "5h"), _q(s, "weekly"),
             num(s["cap_5h"], 0) if s["cap_5h"] else "–", num(s["cap_weekly"], 0) if s["cap_weekly"] else "–",
         ])
-    w = [32, 26, 13, 13, 16, 16, 17, 17, 17, 15, 14, 15, 15, 17, 15]
+    w = [30, 24, 12, 12, 15, 15, 16, 16, 15, 16, 13, 12, 14, 14, 16, 14]
     scale = lw / (sum(w) * mm)
     S += [table(rows, [x * mm * scale for x in w], bold_first_col=True),
           P("Table 3. Per-model summary. Token and cost figures are means per answer (retries included); quota is the "
             "total for the suite within the model's plan; capacity = tasks ÷ quota share. ≈ coarse, ~ derived, "
-            "&lt;1% below resolution, n/a no such limit (section 3).", "cap")]
+            "&lt;1% below resolution, n/a no such limit (section 3). With reasoning = share of answers with at "
+            "least one reasoning token: at a given effort, adaptive models may skip reasoning altogether."
+            + (f" Times exclude {sum(summ[k(m)]['stalled'] for m in models)} stalled request(s) "
+               f"(over {STALL_MIN_S} s at under {STALL_MAX_TPS:.0f} output tokens/s, i.e. queueing or rate-limit retries, "
+               "not generation)." if any(summ[k(m)]['stalled'] for m in models) else ""), "cap")]
 
     rows = [["Model"] + [bench_info(b)["label"] for b in benches] + ["Mean"]]
     for m in models:

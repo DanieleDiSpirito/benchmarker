@@ -1,0 +1,86 @@
+{
+  "benchmark_name": "C-Exec-Equiv-v1",
+  "tier": 1,
+  "problems": [
+    {
+      "id": "tier1_001",
+      "algorithm_concept": "Bounded Collatz-like step counting from a fixed starting value.",
+      "complexity_tags": ["loops", "branching", "arithmetic"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int n = 27;\n    int step = 0;\n    while (n != 1 && step < 12) {\n        if (n % 2 == 0) {\n            n = n / 2;\n        } else {\n            n = 3 * n + 1;\n        }\n        step++;\n    }\n    printf(\"%d %d\\n\", step, n);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int k_91 = 0;\n    int v_7a = 27;\n    while (!(v_7a == 1 || k_91 >= 12)) {\n        if (!(v_7a % 2 != 0)) {\n            v_7a /= 2;\n        } else {\n            v_7a = v_7a * 3 + 1;\n        }\n        k_91 = k_91 + 1;\n    }\n    printf(\"%d %d\\n\", k_91, v_7a);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int a = 27, s = 0, st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (a == 1 || s >= 12) st = 3; else st = 1;\n                break;\n            case 1:\n                if ((a & 1) == 0) a = a >> 1;\n                else a = (a ^ 1) + 2 * (a & 1) + 2 * a;\n                st = 2;\n                break;\n            default:\n                s = s + 1;\n                st = 0;\n                break;\n        }\n    }\n    printf(\"%d %d\\n\", s, a);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_002",
+      "algorithm_concept": "Alternating-sign accumulation over a fixed integer range.",
+      "complexity_tags": ["loops", "arithmetic", "state"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int sum = 0;\n    int sign = 1;\n    int i;\n    for (i = 1; i <= 10; i++) {\n        sum += sign * i;\n        sign = -sign;\n    }\n    printf(\"%d\\n\", sum);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int acc_02 = 0;\n    int k_91 = 1;\n    int v_7a = 1;\n    while (!(v_7a > 10)) {\n        acc_02 = acc_02 + k_91 * v_7a;\n        k_91 = -k_91;\n        v_7a = v_7a + 1;\n    }\n    printf(\"%d\\n\", acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int t = 0;\n    int u = 1;\n    int s = 1;\n    while (u <= 10) {\n        t = t + (s > 0 ? u : -u);\n        s = (s == 1) ? -1 : 1;\n        u = (u ^ 1) + 2 * (u & 1);\n    }\n    printf(\"%d\\n\", t);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_003",
+      "algorithm_concept": "Integer digit extraction and accumulation from a fixed number.",
+      "complexity_tags": ["loops", "modulo", "division"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int n = 90210;\n    int sum = 0;\n    while (n > 0) {\n        int d = n % 10;\n        sum += d;\n        n /= 10;\n    }\n    printf(\"%d\\n\", sum);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 90210;\n    int acc_02 = 0;\n    while (!(v_7a <= 0)) {\n        int k_91 = v_7a % 10;\n        acc_02 = acc_02 + k_91;\n        v_7a = v_7a / 10;\n    }\n    printf(\"%d\\n\", acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint f(int n) {\n    if (n == 0) {\n        return 0;\n    }\n    return n % 10 + f(n / 10);\n}\n\nint main(void) {\n    int v_7a = 90210;\n    int acc_02 = 0;\n    acc_02 = f(v_7a);\n    printf(\"%d\\n\", acc_02);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_004",
+      "algorithm_concept": "Conditional step counter using divisibility by 3 or 5.",
+      "complexity_tags": ["loops", "branching", "modulo"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int count = 0;\n    int i;\n    for (i = 1; i <= 15; i++) {\n        if (i % 3 == 0 || i % 5 == 0) {\n            count++;\n        }\n    }\n    printf(\"%d\\n\", count);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int k_91 = 0;\n    int v_7a = 1;\n    while (!(v_7a > 15)) {\n        if (!(v_7a % 3 != 0 && v_7a % 5 != 0)) {\n            k_91 = k_91 + 1;\n        }\n        v_7a = v_7a + 1;\n    }\n    printf(\"%d\\n\", k_91);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int c = 0;\n    int i = 1;\n    while (i <= 15) {\n        c = c + ((i % 3 == 0 || i % 5 == 0) ? 1 : 0);\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d\\n\", c);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_005",
+      "algorithm_concept": "Piecewise linear state updates driven by loop-index parity.",
+      "complexity_tags": ["loops", "branching", "arithmetic"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 1;\n    int i;\n    for (i = 0; i < 8; i++) {\n        if (i % 2 == 0) {\n            x = x * 2 + 1;\n        } else {\n            x = x - 3;\n        }\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 1;\n    int k_91 = 0;\n    while (!(k_91 >= 8)) {\n        if (!(k_91 % 2 != 0)) {\n            v_7a = v_7a * 2 + 1;\n        } else {\n            v_7a = v_7a - 3;\n        }\n        k_91 = k_91 + 1;\n    }\n    printf(\"%d\\n\", v_7a);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int a = 1;\n    int i = 0;\n    while (i < 8) {\n        a = (i & 1) ? a - 3 : a * 2 + 1;\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d\\n\", a);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_006",
+      "algorithm_concept": "Euclidean-style remainder steps with step and gcd output.",
+      "complexity_tags": ["loops", "modulo", "state"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int a = 1071;\n    int b = 462;\n    int step = 0;\n    while (b != 0) {\n        int t = a % b;\n        a = b;\n        b = t;\n        step++;\n    }\n    printf(\"%d %d\\n\", a, step);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 1071;\n    int k_91 = 462;\n    int acc_02 = 0;\n    while (!(k_91 == 0)) {\n        int t_03 = v_7a % k_91;\n        v_7a = k_91;\n        k_91 = t_03;\n        acc_02 = acc_02 + 1;\n    }\n    printf(\"%d %d\\n\", v_7a, acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int a = 1071, b = 462, s = 0, st = 0;\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (b == 0) st = 2; else st = 1;\n                break;\n            case 1: {\n                int t = a % b;\n                a = b;\n                b = t;\n                s = s + 1;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n    printf(\"%d %d\\n\", a, s);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_007",
+      "algorithm_concept": "Base-conversion accumulation by counting set bits in a fixed integer.",
+      "complexity_tags": ["loops", "bitwise", "division"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int n = 12345;\n    int bits = 0;\n    while (n > 0) {\n        bits += n % 2;\n        n /= 2;\n    }\n    printf(\"%d\\n\", bits);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 12345;\n    int acc_02 = 0;\n    while (!(v_7a <= 0)) {\n        acc_02 = acc_02 + v_7a % 2;\n        v_7a = v_7a / 2;\n    }\n    printf(\"%d\\n\", acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int v = 12345;\n    int c = 0;\n    while (v != 0) {\n        c = c + (v & 1);\n        v = v >> 1;\n    }\n    printf(\"%d\\n\", c);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_008",
+      "algorithm_concept": "Running minimum and maximum over a deterministic modular sequence.",
+      "complexity_tags": ["loops", "state", "modulo"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 5;\n    int min = 5;\n    int max = 5;\n    int i;\n    for (i = 0; i < 12; i++) {\n        x = (x * 7 + 3) % 50;\n        if (x < min) min = x;\n        if (x > max) max = x;\n    }\n    printf(\"%d %d\\n\", min, max);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 5;\n    int k_91 = 5;\n    int acc_02 = 5;\n    int i_03 = 0;\n    while (!(i_03 >= 12)) {\n        v_7a = (v_7a * 7 + 3) % 50;\n        if (!(v_7a >= k_91)) k_91 = v_7a;\n        if (!(v_7a <= acc_02)) acc_02 = v_7a;\n        i_03 = i_03 + 1;\n    }\n    printf(\"%d %d\\n\", k_91, acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 5;\n    int lo = 5;\n    int hi = 5;\n    int i = 0;\n    while (i < 12) {\n        x = (x * 7 + 3) % 50;\n        lo = (x < lo) ? x : lo;\n        hi = (x > hi) ? x : hi;\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d %d\\n\", lo, hi);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_009",
+      "algorithm_concept": "Threshold clamping during cumulative addition.",
+      "complexity_tags": ["loops", "branching", "arithmetic"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 0;\n    int i;\n    for (i = 1; i <= 12; i++) {\n        x += i;\n        if (x > 20) {\n            x = 20;\n        }\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 0;\n    int k_91 = 1;\n    while (!(k_91 > 12)) {\n        v_7a = v_7a + k_91;\n        if (!(v_7a <= 20)) {\n            v_7a = 20;\n        }\n        k_91 = k_91 + 1;\n    }\n    printf(\"%d\\n\", v_7a);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 0;\n    int i = 1;\n    while (i <= 12) {\n        x = x + i;\n        x = (x > 20) ? 20 : x;\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_010",
+      "algorithm_concept": "Modular step sequence selected by loop-index remainder.",
+      "complexity_tags": ["loops", "branching", "modulo"],
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 1;\n    int i;\n    for (i = 0; i < 12; i++) {\n        if (i % 3 == 0) {\n            x = (x + 5) % 17;\n        } else if (i % 3 == 1) {\n            x = (x * 3) % 17;\n        } else {\n            x = (x + 1) % 17;\n        }\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 1;\n    int k_91 = 0;\n    while (!(k_91 >= 12)) {\n        if (k_91 % 3 == 0) {\n            v_7a = (v_7a + 5) % 17;\n        } else if (k_91 % 3 == 1) {\n            v_7a = (v_7a * 3) % 17;\n        } else {\n            v_7a = (v_7a + 1) % 17;\n        }\n        k_91 = k_91 + 1;\n    }\n    printf(\"%d\\n\", v_7a);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 1;\n    int i = 0;\n    while (i < 12) {\n        switch (i % 3) {\n            case 0:\n                x = (x + 5) % 17;\n                break;\n            case 1:\n                x = (x * 3) % 17;\n                break;\n            default:\n                x = (x + 1) % 17;\n                break;\n        }\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n"
+    }
+  ]
+}

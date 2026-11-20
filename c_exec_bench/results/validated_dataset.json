@@ -1,0 +1,567 @@
+{
+  "total_validated": 40,
+  "total_rejected": 0,
+  "problems": [
+    {
+      "id": "tier1_001",
+      "tier": 1,
+      "algorithm_concept": "Bounded Collatz-like step counting from a fixed starting value.",
+      "complexity_tags": [
+        "loops",
+        "branching",
+        "arithmetic"
+      ],
+      "ground_truth_stdout": "12 322",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int n = 27;\n    int step = 0;\n    while (n != 1 && step < 12) {\n        if (n % 2 == 0) {\n            n = n / 2;\n        } else {\n            n = 3 * n + 1;\n        }\n        step++;\n    }\n    printf(\"%d %d\\n\", step, n);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int k_91 = 0;\n    int v_7a = 27;\n    while (!(v_7a == 1 || k_91 >= 12)) {\n        if (!(v_7a % 2 != 0)) {\n            v_7a /= 2;\n        } else {\n            v_7a = v_7a * 3 + 1;\n        }\n        k_91 = k_91 + 1;\n    }\n    printf(\"%d %d\\n\", k_91, v_7a);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int a = 27, s = 0, st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (a == 1 || s >= 12) st = 3; else st = 1;\n                break;\n            case 1:\n                if ((a & 1) == 0) a = a >> 1;\n                else a = (a ^ 1) + 2 * (a & 1) + 2 * a;\n                st = 2;\n                break;\n            default:\n                s = s + 1;\n                st = 0;\n                break;\n        }\n    }\n    printf(\"%d %d\\n\", s, a);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_002",
+      "tier": 1,
+      "algorithm_concept": "Alternating-sign accumulation over a fixed integer range.",
+      "complexity_tags": [
+        "loops",
+        "arithmetic",
+        "state"
+      ],
+      "ground_truth_stdout": "-5",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int sum = 0;\n    int sign = 1;\n    int i;\n    for (i = 1; i <= 10; i++) {\n        sum += sign * i;\n        sign = -sign;\n    }\n    printf(\"%d\\n\", sum);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int acc_02 = 0;\n    int k_91 = 1;\n    int v_7a = 1;\n    while (!(v_7a > 10)) {\n        acc_02 = acc_02 + k_91 * v_7a;\n        k_91 = -k_91;\n        v_7a = v_7a + 1;\n    }\n    printf(\"%d\\n\", acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int t = 0;\n    int u = 1;\n    int s = 1;\n    while (u <= 10) {\n        t = t + (s > 0 ? u : -u);\n        s = (s == 1) ? -1 : 1;\n        u = (u ^ 1) + 2 * (u & 1);\n    }\n    printf(\"%d\\n\", t);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_003",
+      "tier": 1,
+      "algorithm_concept": "Integer digit extraction and accumulation from a fixed number.",
+      "complexity_tags": [
+        "loops",
+        "modulo",
+        "division"
+      ],
+      "ground_truth_stdout": "12",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int n = 90210;\n    int sum = 0;\n    while (n > 0) {\n        int d = n % 10;\n        sum += d;\n        n /= 10;\n    }\n    printf(\"%d\\n\", sum);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 90210;\n    int acc_02 = 0;\n    while (!(v_7a <= 0)) {\n        int k_91 = v_7a % 10;\n        acc_02 = acc_02 + k_91;\n        v_7a = v_7a / 10;\n    }\n    printf(\"%d\\n\", acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint f(int n) {\n    if (n == 0) {\n        return 0;\n    }\n    return n % 10 + f(n / 10);\n}\n\nint main(void) {\n    int v_7a = 90210;\n    int acc_02 = 0;\n    acc_02 = f(v_7a);\n    printf(\"%d\\n\", acc_02);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_004",
+      "tier": 1,
+      "algorithm_concept": "Conditional step counter using divisibility by 3 or 5.",
+      "complexity_tags": [
+        "loops",
+        "branching",
+        "modulo"
+      ],
+      "ground_truth_stdout": "7",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int count = 0;\n    int i;\n    for (i = 1; i <= 15; i++) {\n        if (i % 3 == 0 || i % 5 == 0) {\n            count++;\n        }\n    }\n    printf(\"%d\\n\", count);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int k_91 = 0;\n    int v_7a = 1;\n    while (!(v_7a > 15)) {\n        if (!(v_7a % 3 != 0 && v_7a % 5 != 0)) {\n            k_91 = k_91 + 1;\n        }\n        v_7a = v_7a + 1;\n    }\n    printf(\"%d\\n\", k_91);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int c = 0;\n    int i = 1;\n    while (i <= 15) {\n        c = c + ((i % 3 == 0 || i % 5 == 0) ? 1 : 0);\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d\\n\", c);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_005",
+      "tier": 1,
+      "algorithm_concept": "Piecewise linear state updates driven by loop-index parity.",
+      "complexity_tags": [
+        "loops",
+        "branching",
+        "arithmetic"
+      ],
+      "ground_truth_stdout": "-14",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 1;\n    int i;\n    for (i = 0; i < 8; i++) {\n        if (i % 2 == 0) {\n            x = x * 2 + 1;\n        } else {\n            x = x - 3;\n        }\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 1;\n    int k_91 = 0;\n    while (!(k_91 >= 8)) {\n        if (!(k_91 % 2 != 0)) {\n            v_7a = v_7a * 2 + 1;\n        } else {\n            v_7a = v_7a - 3;\n        }\n        k_91 = k_91 + 1;\n    }\n    printf(\"%d\\n\", v_7a);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int a = 1;\n    int i = 0;\n    while (i < 8) {\n        a = (i & 1) ? a - 3 : a * 2 + 1;\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d\\n\", a);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_006",
+      "tier": 1,
+      "algorithm_concept": "Euclidean-style remainder steps with step and gcd output.",
+      "complexity_tags": [
+        "loops",
+        "modulo",
+        "state"
+      ],
+      "ground_truth_stdout": "21 3",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int a = 1071;\n    int b = 462;\n    int step = 0;\n    while (b != 0) {\n        int t = a % b;\n        a = b;\n        b = t;\n        step++;\n    }\n    printf(\"%d %d\\n\", a, step);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 1071;\n    int k_91 = 462;\n    int acc_02 = 0;\n    while (!(k_91 == 0)) {\n        int t_03 = v_7a % k_91;\n        v_7a = k_91;\n        k_91 = t_03;\n        acc_02 = acc_02 + 1;\n    }\n    printf(\"%d %d\\n\", v_7a, acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int a = 1071, b = 462, s = 0, st = 0;\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (b == 0) st = 2; else st = 1;\n                break;\n            case 1: {\n                int t = a % b;\n                a = b;\n                b = t;\n                s = s + 1;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n    printf(\"%d %d\\n\", a, s);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_007",
+      "tier": 1,
+      "algorithm_concept": "Base-conversion accumulation by counting set bits in a fixed integer.",
+      "complexity_tags": [
+        "loops",
+        "bitwise",
+        "division"
+      ],
+      "ground_truth_stdout": "6",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int n = 12345;\n    int bits = 0;\n    while (n > 0) {\n        bits += n % 2;\n        n /= 2;\n    }\n    printf(\"%d\\n\", bits);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 12345;\n    int acc_02 = 0;\n    while (!(v_7a <= 0)) {\n        acc_02 = acc_02 + v_7a % 2;\n        v_7a = v_7a / 2;\n    }\n    printf(\"%d\\n\", acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int v = 12345;\n    int c = 0;\n    while (v != 0) {\n        c = c + (v & 1);\n        v = v >> 1;\n    }\n    printf(\"%d\\n\", c);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_008",
+      "tier": 1,
+      "algorithm_concept": "Running minimum and maximum over a deterministic modular sequence.",
+      "complexity_tags": [
+        "loops",
+        "state",
+        "modulo"
+      ],
+      "ground_truth_stdout": "5 38",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 5;\n    int min = 5;\n    int max = 5;\n    int i;\n    for (i = 0; i < 12; i++) {\n        x = (x * 7 + 3) % 50;\n        if (x < min) min = x;\n        if (x > max) max = x;\n    }\n    printf(\"%d %d\\n\", min, max);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 5;\n    int k_91 = 5;\n    int acc_02 = 5;\n    int i_03 = 0;\n    while (!(i_03 >= 12)) {\n        v_7a = (v_7a * 7 + 3) % 50;\n        if (!(v_7a >= k_91)) k_91 = v_7a;\n        if (!(v_7a <= acc_02)) acc_02 = v_7a;\n        i_03 = i_03 + 1;\n    }\n    printf(\"%d %d\\n\", k_91, acc_02);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 5;\n    int lo = 5;\n    int hi = 5;\n    int i = 0;\n    while (i < 12) {\n        x = (x * 7 + 3) % 50;\n        lo = (x < lo) ? x : lo;\n        hi = (x > hi) ? x : hi;\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d %d\\n\", lo, hi);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_009",
+      "tier": 1,
+      "algorithm_concept": "Threshold clamping during cumulative addition.",
+      "complexity_tags": [
+        "loops",
+        "branching",
+        "arithmetic"
+      ],
+      "ground_truth_stdout": "20",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 0;\n    int i;\n    for (i = 1; i <= 12; i++) {\n        x += i;\n        if (x > 20) {\n            x = 20;\n        }\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 0;\n    int k_91 = 1;\n    while (!(k_91 > 12)) {\n        v_7a = v_7a + k_91;\n        if (!(v_7a <= 20)) {\n            v_7a = 20;\n        }\n        k_91 = k_91 + 1;\n    }\n    printf(\"%d\\n\", v_7a);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 0;\n    int i = 1;\n    while (i <= 12) {\n        x = x + i;\n        x = (x > 20) ? 20 : x;\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier1_010",
+      "tier": 1,
+      "algorithm_concept": "Modular step sequence selected by loop-index remainder.",
+      "complexity_tags": [
+        "loops",
+        "branching",
+        "modulo"
+      ],
+      "ground_truth_stdout": "7",
+      "classic_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 1;\n    int i;\n    for (i = 0; i < 12; i++) {\n        if (i % 3 == 0) {\n            x = (x + 5) % 17;\n        } else if (i % 3 == 1) {\n            x = (x * 3) % 17;\n        } else {\n            x = (x + 1) % 17;\n        }\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n\nint main(void) {\n    int v_7a = 1;\n    int k_91 = 0;\n    while (!(k_91 >= 12)) {\n        if (k_91 % 3 == 0) {\n            v_7a = (v_7a + 5) % 17;\n        } else if (k_91 % 3 == 1) {\n            v_7a = (v_7a * 3) % 17;\n        } else {\n            v_7a = (v_7a + 1) % 17;\n        }\n        k_91 = k_91 + 1;\n    }\n    printf(\"%d\\n\", v_7a);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n\nint main(void) {\n    int x = 1;\n    int i = 0;\n    while (i < 12) {\n        switch (i % 3) {\n            case 0:\n                x = (x + 5) % 17;\n                break;\n            case 1:\n                x = (x * 3) % 17;\n                break;\n            default:\n                x = (x + 1) % 17;\n                break;\n        }\n        i = (i ^ 1) + 2 * (i & 1);\n    }\n    printf(\"%d\\n\", x);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_001",
+      "tier": 2,
+      "algorithm_concept": "Compute prefix sums by nested accumulation over prior elements.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "prefix_sums"
+      ],
+      "ground_truth_stdout": "3\n4\n8\n9\n14\n23\n25\n31",
+      "classic_c": "#include <stdio.h>\nstatic void prefix(int a[], int n, int out[]) {\n    int i, j, sum;\n    for (i = 0; i < n; i++) {\n        sum = 0;\n        for (j = 0; j <= i; j++) {\n            sum += a[j];\n        }\n        out[i] = sum;\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[8] = {3, 1, 4, 1, 5, 9, 2, 6};\n    int out[8];\n    int n = 8;\n    prefix(arr, n, out);\n    show(out, n);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_p7(int b_2[], int m_9, int r_3[]) {\n    int q_1 = 0, k_5, acc_8;\n    while (!(q_1 >= m_9)) {\n        acc_8 = 0;\n        k_5 = 0;\n        while (k_5 <= q_1) {\n            acc_8 += b_2[k_5];\n            k_5++;\n        }\n        r_3[q_1] = acc_8;\n        q_1++;\n    }\n}\nstatic void fn_s4(int z_0[], int t_6) {\n    int u_2 = 0;\n    while (u_2 < t_6) {\n        printf(\"%d\\n\", z_0[u_2]);\n        u_2++;\n    }\n}\nint main(void) {\n    int buf_8x[8] = {3, 1, 4, 1, 5, 9, 2, 6};\n    int out_1[8];\n    int n_3 = 8;\n    fn_p7(buf_8x, n_3, out_1);\n    fn_s4(out_1, n_3);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic int ad(int x, int y) {\n    return (x ^ y) + 2 * (x & y);\n}\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[8] = {3, 1, 4, 1, 5, 9, 2, 6};\n    int o[8];\n    int st = 0;\n    int i = 0;\n    int j = 0;\n    int s = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (i < 8) { s = 0; j = 0; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (j <= i) { s = ad(s, j[a]); j++; } else { o[i] = s; i++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(o, 8);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_002",
+      "tier": 2,
+      "algorithm_concept": "Perform a selection-sort pass over an array and print the sorted order.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "selection_sort"
+      ],
+      "ground_truth_stdout": "1\n2\n3\n4\n6\n7\n8\n9",
+      "classic_c": "#include <stdio.h>\nstatic void ssort(int a[], int n) {\n    int i, j, min, t;\n    for (i = 0; i < n - 1; i++) {\n        min = i;\n        for (j = i + 1; j < n; j++) {\n            if (a[j] < a[min]) {\n                min = j;\n            }\n        }\n        t = a[i];\n        a[i] = a[min];\n        a[min] = t;\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[8] = {9, 4, 7, 1, 8, 2, 6, 3};\n    int n = 8;\n    ssort(arr, n);\n    show(arr, n);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_q2(int v_1[], int c_9) {\n    int x_3 = 0, y_7, m_4, z_8;\n    while (!(x_3 >= c_9 - 1)) {\n        m_4 = x_3;\n        y_7 = x_3 + 1;\n        while (y_7 < c_9) {\n            if (!(v_1[y_7] >= v_1[m_4])) {\n                m_4 = y_7;\n            }\n            y_7++;\n        }\n        z_8 = v_1[x_3];\n        v_1[x_3] = v_1[m_4];\n        v_1[m_4] = z_8;\n        x_3++;\n    }\n}\nstatic void fn_r5(int w_0[], int d_6) {\n    int k_2 = 0;\n    while (k_2 < d_6) {\n        printf(\"%d\\n\", w_0[k_2]);\n        k_2++;\n    }\n}\nint main(void) {\n    int buf_7[8] = {9, 4, 7, 1, 8, 2, 6, 3};\n    int n_1 = 8;\n    fn_q2(buf_7, n_1);\n    fn_r5(buf_7, n_1);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic int less(int x, int y) {\n    return x < y;\n}\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[8] = {9, 4, 7, 1, 8, 2, 6, 3};\n    int i = 0;\n    int j = 0;\n    int m = 0;\n    int t = 0;\n    int st = 0;\n    while (st != 5) {\n        switch (st) {\n            case 0:\n                if (i < 7) { m = i; j = i + 1; st = 1; } else { st = 5; }\n                break;\n            case 1:\n                if (j < 8) { if (less(j[a], m[a])) { m = j; } j++; } else { t = i[a]; i[a] = m[a]; m[a] = t; i++; st = 0; }\n                break;\n            default:\n                st = 5;\n                break;\n        }\n    }\n    pr(a, 8);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_003",
+      "tier": 2,
+      "algorithm_concept": "Count array-value frequencies into fixed histogram buckets.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "histogram"
+      ],
+      "ground_truth_stdout": "2\n3\n2\n1",
+      "classic_c": "#include <stdio.h>\nstatic void hist(int a[], int n, int h[], int m) {\n    int b, i;\n    for (b = 0; b < m; b++) {\n        h[b] = 0;\n        for (i = 0; i < n; i++) {\n            if (a[i] == b) {\n                h[b]++;\n            }\n        }\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[8] = {0, 1, 2, 1, 3, 2, 1, 0};\n    int h[4];\n    hist(arr, 8, h, 4);\n    show(h, 4);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_h8(int q_1[], int r_6, int s_3[], int t_9) {\n    int u_2 = 0, v_7;\n    while (!(u_2 >= t_9)) {\n        s_3[u_2] = 0;\n        v_7 = 0;\n        while (v_7 < r_6) {\n            if (q_1[v_7] == u_2) {\n                s_3[u_2]++;\n            }\n            v_7++;\n        }\n        u_2++;\n    }\n}\nstatic void fn_s4(int w_0[], int x_5) {\n    int y_3 = 0;\n    while (y_3 < x_5) {\n        printf(\"%d\\n\", w_0[y_3]);\n        y_3++;\n    }\n}\nint main(void) {\n    int buf_2[8] = {0, 1, 2, 1, 3, 2, 1, 0};\n    int out_7[4];\n    fn_h8(buf_2, 8, out_7, 4);\n    fn_s4(out_7, 4);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic int eq(int x, int y) {\n    return (x ^ y) == 0;\n}\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[8] = {0, 1, 2, 1, 3, 2, 1, 0};\n    int h[4];\n    int b = 0;\n    int i = 0;\n    int st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (b < 4) { h[b] = 0; i = 0; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (i < 8) { if (eq(i[a], b)) { h[b]++; } i++; } else { b++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(h, 4);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_004",
+      "tier": 2,
+      "algorithm_concept": "Generate run-length counts for consecutive equal values.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "run_length"
+      ],
+      "ground_truth_stdout": "2\n3\n1\n4",
+      "classic_c": "#include <stdio.h>\nstatic int rle(int a[], int n, int out[]) {\n    int i = 0, c = 0;\n    while (i < n) {\n        int v = a[i];\n        int len = 0;\n        while (i < n && a[i] == v) {\n            len++;\n            i++;\n        }\n        out[c] = len;\n        c++;\n    }\n    return c;\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[10] = {1, 1, 2, 2, 2, 3, 4, 4, 4, 4};\n    int out[10];\n    int c = rle(arr, 10, out);\n    show(out, c);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic int fn_e3(int q_1[], int r_8, int s_2[]) {\n    int i_5 = 0, c_7 = 0;\n    while (!(i_5 >= r_8)) {\n        int v_9 = q_1[i_5];\n        int l_4 = 0;\n        while (i_5 < r_8 && q_1[i_5] == v_9) {\n            l_4++;\n            i_5++;\n        }\n        s_2[c_7] = l_4;\n        c_7++;\n    }\n    return c_7;\n}\nstatic void fn_p6(int w_0[], int x_1) {\n    int y_3 = 0;\n    while (y_3 < x_1) {\n        printf(\"%d\\n\", w_0[y_3]);\n        y_3++;\n    }\n}\nint main(void) {\n    int buf_4[10] = {1, 1, 2, 2, 2, 3, 4, 4, 4, 4};\n    int out_8[10];\n    int n_2 = fn_e3(buf_4, 10, out_8);\n    fn_p6(out_8, n_2);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[10] = {1, 1, 2, 2, 2, 3, 4, 4, 4, 4};\n    int o[10];\n    int i = 0;\n    int c = 0;\n    int len = 0;\n    int v = 0;\n    int st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (i < 10) { v = i[a]; len = 0; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (i < 10 && (i[a] ^ v) == 0) { len++; i++; } else { o[c] = len; c++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(o, c);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_005",
+      "tier": 2,
+      "algorithm_concept": "Accumulate pairwise differences for each starting index.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "pairwise_difference"
+      ],
+      "ground_truth_stdout": "-1\n20\n-22\n18\n-6\n6\n-4\n0",
+      "classic_c": "#include <stdio.h>\nstatic void psums(int a[], int n, int out[]) {\n    int i, j, s;\n    for (i = 0; i < n; i++) {\n        s = 0;\n        for (j = i + 1; j < n; j++) {\n            s += a[j] - a[i];\n        }\n        out[i] = s;\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[8] = {5, 2, 9, 1, 7, 3, 8, 4};\n    int out[8];\n    psums(arr, 8, out);\n    show(out, 8);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_d7(int q_1[], int r_4, int s_9[]) {\n    int i_2 = 0, j_8, a_5;\n    while (i_2 < r_4) {\n        a_5 = 0;\n        j_8 = i_2 + 1;\n        while (j_8 < r_4) {\n            a_5 += q_1[j_8] - q_1[i_2];\n            j_8++;\n        }\n        s_9[i_2] = a_5;\n        i_2++;\n    }\n}\nstatic void fn_p3(int w_0[], int x_6) {\n    int y_1 = 0;\n    while (y_1 < x_6) {\n        printf(\"%d\\n\", w_0[y_1]);\n        y_1++;\n    }\n}\nint main(void) {\n    int buf_5[8] = {5, 2, 9, 1, 7, 3, 8, 4};\n    int out_2[8];\n    fn_d7(buf_5, 8, out_2);\n    fn_p3(out_2, 8);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[8] = {5, 2, 9, 1, 7, 3, 8, 4};\n    int o[8];\n    int i = 0;\n    int j = 1;\n    int s = 0;\n    int st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (i < 8) { s = 0; j = i + 1; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (j < 8) { s += j[a] - i[a]; j++; } else { o[i] = s; i++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(o, 8);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_006",
+      "tier": 2,
+      "algorithm_concept": "Evaluate a polynomial with Horner's method for each input value.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "horner"
+      ],
+      "ground_truth_stdout": "15\n73\n269\n5\n741\n1675",
+      "classic_c": "#include <stdio.h>\nstatic void horner(int c[], int m, int x[], int n, int out[]) {\n    int i, j, v;\n    for (i = 0; i < n; i++) {\n        v = 0;\n        for (j = 0; j < m; j++) {\n            v = v * x[i] + c[j];\n        }\n        out[i] = v;\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int c[5] = {2, 3, 1, 4, 5};\n    int x[6] = {1, 2, 3, 0, 4, 5};\n    int out[6];\n    horner(c, 5, x, 6, out);\n    show(out, 6);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_h1(int q_7[], int r_2, int s_9[], int t_4, int u_5[]) {\n    int i_3 = 0, j_8, v_1;\n    while (i_3 < t_4) {\n        v_1 = 0;\n        j_8 = 0;\n        while (j_8 < r_2) {\n            v_1 = v_1 * s_9[i_3] + q_7[j_8];\n            j_8++;\n        }\n        u_5[i_3] = v_1;\n        i_3++;\n    }\n}\nstatic void fn_p6(int w_0[], int x_2) {\n    int y_4 = 0;\n    while (y_4 < x_2) {\n        printf(\"%d\\n\", w_0[y_4]);\n        y_4++;\n    }\n}\nint main(void) {\n    int buf_1[5] = {2, 3, 1, 4, 5};\n    int xs_8[6] = {1, 2, 3, 0, 4, 5};\n    int out_3[6];\n    fn_h1(buf_1, 5, xs_8, 6, out_3);\n    fn_p6(out_3, 6);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int c[5] = {2, 3, 1, 4, 5};\n    int x[6] = {1, 2, 3, 0, 4, 5};\n    int o[6];\n    int i = 0;\n    int j = 0;\n    int v = 0;\n    int st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (i < 6) { v = 0; j = 0; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (j < 5) { v = v * i[x] + j[c]; j++; } else { o[i] = v; i++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(o, 6);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_007",
+      "tier": 2,
+      "algorithm_concept": "Compute rolling-window polynomial hashes over an array.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "sliding_window"
+      ],
+      "ground_truth_stdout": "1026\n2019\n3012\n4005\n4998\n5991",
+      "classic_c": "#include <stdio.h>\nstatic void win(int a[], int n, int k, int out[]) {\n    int i, j, h;\n    for (i = 0; i <= n - k; i++) {\n        h = 0;\n        for (j = i; j < i + k; j++) {\n            h = h * 31 + a[j];\n        }\n        out[i] = h;\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[8] = {1, 2, 3, 4, 5, 6, 7, 8};\n    int out[6];\n    win(arr, 8, 3, out);\n    show(out, 6);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_w9(int q_1[], int r_5, int s_2, int t_8[]) {\n    int i_4 = 0, j_7, h_3;\n    while (i_4 <= r_5 - s_2) {\n        h_3 = 0;\n        j_7 = i_4;\n        while (j_7 < i_4 + s_2) {\n            h_3 = h_3 * 31 + q_1[j_7];\n            j_7++;\n        }\n        t_8[i_4] = h_3;\n        i_4++;\n    }\n}\nstatic void fn_p6(int w_0[], int x_9) {\n    int y_1 = 0;\n    while (y_1 < x_9) {\n        printf(\"%d\\n\", w_0[y_1]);\n        y_1++;\n    }\n}\nint main(void) {\n    int buf_4[8] = {1, 2, 3, 4, 5, 6, 7, 8};\n    int out_3[6];\n    fn_w9(buf_4, 8, 3, out_3);\n    fn_p6(out_3, 6);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[8] = {1, 2, 3, 4, 5, 6, 7, 8};\n    int o[6];\n    int i = 0;\n    int j = 0;\n    int h = 0;\n    int st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (i <= 5) { h = 0; j = i; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (j < i + 3) { h = h * 31 + j[a]; j++; } else { o[i] = h; i++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(o, 6);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_008",
+      "tier": 2,
+      "algorithm_concept": "Rotate an array cyclically right by three positions using repeated shifts.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "rotation"
+      ],
+      "ground_truth_stdout": "6\n7\n8\n1\n2\n3\n4\n5",
+      "classic_c": "#include <stdio.h>\nstatic void rot(int a[], int n, int k) {\n    int r, i, t;\n    for (r = 0; r < k; r++) {\n        t = a[n - 1];\n        for (i = n - 1; i > 0; i--) {\n            a[i] = a[i - 1];\n        }\n        a[0] = t;\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[8] = {1, 2, 3, 4, 5, 6, 7, 8};\n    rot(arr, 8, 3);\n    show(arr, 8);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_r4(int q_1[], int r_8, int s_2) {\n    int a_5 = 0, i_7, t_3;\n    while (a_5 < s_2) {\n        t_3 = q_1[r_8 - 1];\n        i_7 = r_8 - 1;\n        while (i_7 > 0) {\n            q_1[i_7] = q_1[i_7 - 1];\n            i_7--;\n        }\n        q_1[0] = t_3;\n        a_5++;\n    }\n}\nstatic void fn_p6(int w_0[], int x_9) {\n    int y_2 = 0;\n    while (y_2 < x_9) {\n        printf(\"%d\\n\", w_0[y_2]);\n        y_2++;\n    }\n}\nint main(void) {\n    int buf_5[8] = {1, 2, 3, 4, 5, 6, 7, 8};\n    fn_r4(buf_5, 8, 3);\n    fn_p6(buf_5, 8);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[8] = {1, 2, 3, 4, 5, 6, 7, 8};\n    int r = 0;\n    int i = 7;\n    int t = 0;\n    int st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (r < 3) { t = 7[a]; i = 7; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (i > 0) { i[a] = (i - 1)[a]; i--; } else { 0[a] = t; r++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(a, 8);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_009",
+      "tier": 2,
+      "algorithm_concept": "Reverse a subarray in place using symmetric swaps.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "reversal"
+      ],
+      "ground_truth_stdout": "0\n1\n7\n6\n5\n4\n3\n2\n8\n9",
+      "classic_c": "#include <stdio.h>\nstatic void rev(int a[], int l, int r) {\n    int i, j, t;\n    for (i = l; i <= (l + r) / 2; i++) {\n        for (j = 0; j < 1; j++) {\n            t = a[i];\n            a[i] = a[r - (i - l)];\n            a[r - (i - l)] = t;\n        }\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};\n    rev(arr, 2, 7);\n    show(arr, 10);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_v5(int q_1[], int r_9, int s_3) {\n    int i_7, j_2, t_8;\n    i_7 = r_9;\n    while (i_7 <= (r_9 + s_3) / 2) {\n        j_2 = 0;\n        while (j_2 < 1) {\n            t_8 = q_1[i_7];\n            q_1[i_7] = q_1[s_3 - (i_7 - r_9)];\n            q_1[s_3 - (i_7 - r_9)] = t_8;\n            j_2++;\n        }\n        i_7++;\n    }\n}\nstatic void fn_p6(int w_0[], int x_4) {\n    int y_9 = 0;\n    while (y_9 < x_4) {\n        printf(\"%d\\n\", w_0[y_9]);\n        y_9++;\n    }\n}\nint main(void) {\n    int buf_3[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};\n    fn_v5(buf_3, 2, 7);\n    fn_p6(buf_3, 10);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[10] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};\n    int l = 2;\n    int r = 7;\n    int i = 2;\n    int j = 0;\n    int t = 0;\n    int st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (i <= (l + r) / 2) { j = 0; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (j < 1) { t = i[a]; i[a] = (r - (i - l))[a]; (r - (i - l))[a] = t; j++; } else { i++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(a, 10);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier2_010",
+      "tier": 2,
+      "algorithm_concept": "Count pairs with sum at most each target using two-pointer convergence.",
+      "complexity_tags": [
+        "arrays",
+        "nested_loops",
+        "two_pointer"
+      ],
+      "ground_truth_stdout": "1\n4\n9\n13\n15\n15",
+      "classic_c": "#include <stdio.h>\nstatic void twop(int a[], int n, int q[], int m, int out[]) {\n    int t, l, r, c;\n    for (t = 0; t < m; t++) {\n        l = 0;\n        r = n - 1;\n        c = 0;\n        while (l < r) {\n            if (a[l] + a[r] <= q[t]) {\n                c += r - l;\n                l++;\n            } else {\n                r--;\n            }\n        }\n        out[t] = c;\n    }\n}\nstatic void show(int a[], int n) {\n    int i;\n    for (i = 0; i < n; i++) {\n        printf(\"%d\\n\", a[i]);\n    }\n}\nint main(void) {\n    int arr[6] = {1, 2, 3, 4, 5, 6};\n    int q[6] = {3, 5, 7, 9, 11, 13};\n    int out[6];\n    twop(arr, 6, q, 6, out);\n    show(out, 6);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\nstatic void fn_t8(int q_1[], int r_5, int s_9[], int t_2, int u_7[]) {\n    int a_3 = 0, b_4, c_6, d_8;\n    while (a_3 < t_2) {\n        b_4 = 0;\n        c_6 = r_5 - 1;\n        d_8 = 0;\n        while (b_4 < c_6) {\n            if (q_1[b_4] + q_1[c_6] <= s_9[a_3]) {\n                d_8 += c_6 - b_4;\n                b_4++;\n            } else {\n                c_6--;\n            }\n        }\n        u_7[a_3] = d_8;\n        a_3++;\n    }\n}\nstatic void fn_p6(int w_0[], int x_4) {\n    int y_2 = 0;\n    while (y_2 < x_4) {\n        printf(\"%d\\n\", w_0[y_2]);\n        y_2++;\n    }\n}\nint main(void) {\n    int buf_3[6] = {1, 2, 3, 4, 5, 6};\n    int qs_8[6] = {3, 5, 7, 9, 11, 13};\n    int out_1[6];\n    fn_t8(buf_3, 6, qs_8, 6, out_1);\n    fn_p6(out_1, 6);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\nstatic void pr(int *p, int n) {\n    int k = 0;\n    while (k < n) {\n        printf(\"%d\\n\", k[p]);\n        k++;\n    }\n}\nint main(void) {\n    int a[6] = {1, 2, 3, 4, 5, 6};\n    int q[6] = {3, 5, 7, 9, 11, 13};\n    int o[6];\n    int t = 0;\n    int l = 0;\n    int r = 5;\n    int c = 0;\n    int st = 0;\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (t < 6) { l = 0; r = 5; c = 0; st = 1; } else { st = 3; }\n                break;\n            case 1:\n                if (l < r) { if (l[a] + r[a] <= t[q]) { c += r - l; l++; } else { r--; } } else { o[t] = c; t++; st = 0; }\n                break;\n            default:\n                st = 3;\n                break;\n        }\n    }\n    pr(o, 6);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_001",
+      "tier": 3,
+      "algorithm_concept": "Recursive heap-index traversal on a flat array with pointer arithmetic and bitwise checksum.",
+      "complexity_tags": [
+        "pointers",
+        "bitwise",
+        "recursion"
+      ],
+      "ground_truth_stdout": "236 144",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int sum_heap(const int *p, int idx, int n) {\n    if (idx >= n) return 0;\n    int v = *(p + idx);\n    return v + sum_heap(p, (idx << 1) + 1, n) + sum_heap(p, (idx << 1) + 2, n);\n}\nint main(void) {\n    int arr[15];\n    for (int i = 0; i < 15; ++i) arr[i] = (i * 7 + 3) & 31;\n    int total = sum_heap(arr, 0, 15);\n    int acc = 0;\n    for (int i = 0; i < 15; ++i) acc ^= (*(arr + i) << (i & 3));\n    printf(\"%d %d\\n\", total, acc);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int fn_x2(const int *p_44, int ix, int nn) {\n    if (ix >= nn) return 0;\n    int vv = *(p_44 + ix);\n    return vv + fn_x2(p_44, (ix << 1) + 1, nn) + fn_x2(p_44, (ix << 1) + 2, nn);\n}\nint main(void) {\n    int st_9q[15];\n    int kk = 0;\n    while (kk < 15) { st_9q[kk] = (kk * 7 + 3) & 31; ++kk; }\n    int tt = fn_x2(st_9q, 0, 15);\n    int aa = 0;\n    for (int z = 0; z < 15; ++z) aa ^= (*(st_9q + z) << (z & 3));\n    printf(\"%d %d\\n\", tt, aa);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int f1(const int *p, int i, int n) {\n    if (i >= n) return 0;\n    int v = i[p];\n    return v + f1(p, (i << 1) + 1, n) + f1(p, (i << 1) + 2, n);\n}\nint main(void) {\n    int a[15]; int i = 0;\n    while (i < 15) { i[a] = (i * 7 + 3) & 31; ++i; }\n    int t = f1(a, 0, 15);\n    int c = 0; i = 0; int st = 0;\n    while (st != 2) {\n        switch (st) {\n            case 0: if (i < 15) st = 1; else st = 2; break;\n            case 1: c ^= (i[a] << (i & 3)); ++i; st = 0; break;\n            default: st = 2; break;\n        }\n    }\n    printf(\"%d %d\\n\", t, c);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_002",
+      "tier": 3,
+      "algorithm_concept": "Four-round Feistel-like bit-mixing network over 16-bit halves with key injection.",
+      "complexity_tags": [
+        "bitwise",
+        "loops",
+        "uint32_t"
+      ],
+      "ground_truth_stdout": "0xc668b691 15",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t mix(uint32_t x, uint32_t k) {\n    uint32_t a = (x >> 16) & 0xFFFFu;\n    uint32_t b = x & 0xFFFFu;\n    for (int r = 0; r < 4; ++r) {\n        uint32_t t = b;\n        uint32_t rot = ((b << 1) | (b >> 15)) & 0xFFFFu;\n        b = (a ^ rot ^ ((k >> (r * 4)) & 0xFu)) & 0xFFFFu;\n        a = t;\n    }\n    return (a << 16) | b;\n}\nint main(void) {\n    uint32_t vals[4] = {0x1234ABCDu, 0x0BADF00Du, 0xDEADBEEFu, 0xCAFEBABEu};\n    uint32_t key = 0x9E3779B9u;\n    uint32_t out = 0;\n    for (int i = 0; i < 4; ++i) out ^= mix(*(vals + i), key ^ (uint32_t)i);\n    int sum = 0;\n    for (int i = 0; i < 32; ++i) sum += (int)((out >> i) & 1u);\n    printf(\"0x%x %d\\n\", (unsigned)out, sum);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t fn_q7(uint32_t uu, uint32_t kk) {\n    uint32_t vv = (uu >> 16) & 0xFFFFu;\n    uint32_t ww = uu & 0xFFFFu;\n    for (int rr = 0; rr < 4; ++rr) {\n        uint32_t tt = ww;\n        uint32_t ro = ((ww << 1) | (ww >> 15)) & 0xFFFFu;\n        ww = (vv ^ ro ^ ((kk >> (rr * 4)) & 0xFu)) & 0xFFFFu;\n        vv = tt;\n    }\n    return (vv << 16) | ww;\n}\nint main(void) {\n    uint32_t ar_3[4] = {0x1234ABCDu, 0x0BADF00Du, 0xDEADBEEFu, 0xCAFEBABEu};\n    uint32_t ky = 0x9E3779B9u;\n    uint32_t oo = 0;\n    int j = 0;\n    while (j < 4) { oo ^= fn_q7(*(ar_3 + j), ky ^ (uint32_t)j); ++j; }\n    int sm = 0;\n    for (int q = 0; q < 32; ++q) sm += (int)((oo >> q) & 1u);\n    printf(\"0x%x %d\\n\", (unsigned)oo, sm);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t g(uint32_t x, uint32_t k) {\n    uint32_t a = (x >> 16) & 0xFFFFu, b = x & 0xFFFFu;\n    int r = 0;\n    while (r < 4) {\n        uint32_t t = b;\n        uint32_t rot = ((b << 1) | (b >> 15)) & 0xFFFFu;\n        b = (a ^ rot ^ ((k >> (r * 4)) & 0xFu)) & 0xFFFFu;\n        a = t; ++r;\n    }\n    return (a << 16) | b;\n}\nstatic int pc(uint32_t x, int i) {\n    if (i >= 32) return 0;\n    return (int)((x >> i) & 1u) + pc(x, i + 1);\n}\nint main(void) {\n    uint32_t v[4] = {0x1234ABCDu, 0x0BADF00Du, 0xDEADBEEFu, 0xCAFEBABEu};\n    uint32_t k = 0x9E3779B9u, o = 0;\n    for (int i = 0; i < 4; ++i) o ^= g(i[v], k ^ (uint32_t)i);\n    int s = pc(o, 0);\n    printf(\"0x%x %d\\n\", (unsigned)o, s);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_003",
+      "tier": 3,
+      "algorithm_concept": "Diagonal walk over a 4x4 matrix using flat pointer arithmetic and XOR checksum.",
+      "complexity_tags": [
+        "2D arrays",
+        "pointers",
+        "bitwise"
+      ],
+      "ground_truth_stdout": "112 124",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int m[4][4];\n    for (int i = 0; i < 4; ++i)\n        for (int j = 0; j < 4; ++j)\n            m[i][j] = (i * 5 + j * 3 + 1) & 15;\n    int s = 0;\n    int *p = &m[0][0];\n    for (int d = 0; d < 7; ++d) {\n        for (int i = 0; i < 4; ++i) {\n            int j = d - i;\n            if (j >= 0 && j < 4) s += *(p + i * 4 + j);\n        }\n    }\n    int x = 0;\n    for (int i = 0; i < 16; ++i) x ^= (*(p + i) << (i & 3));\n    printf(\"%d %d\\n\", s, x);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int st_1[4][4];\n    int ii = 0;\n    while (ii < 4) {\n        int jj = 0;\n        while (jj < 4) { st_1[ii][jj] = (ii * 5 + jj * 3 + 1) & 15; ++jj; }\n        ++ii;\n    }\n    int ss = 0;\n    int *pp = &st_1[0][0];\n    for (int dd = 0; dd < 7; ++dd) {\n        for (int kk = 0; kk < 4; ++kk) {\n            int ll = dd - kk;\n            if (ll >= 0 && ll < 4) ss += *(pp + kk * 4 + ll);\n        }\n    }\n    int xx = 0;\n    for (int zz = 0; zz < 16; ++zz) xx ^= (*(pp + zz) << (zz & 3));\n    printf(\"%d %d\\n\", ss, xx);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int m[4][4];\n    for (int i = 0; i < 4; ++i)\n        for (int j = 0; j < 4; ++j)\n            m[i][j] = (i * 5 + j * 3 + 1) & 15;\n    int *p = &m[0][0];\n    int s = 0;\n    int d = 0;\n    while (d < 7) {\n        int i = 0;\n        while (i < 4) {\n            int j = d - i;\n            if (j >= 0 && j < 4) s += (i * 4 + j)[p];\n            ++i;\n        }\n        ++d;\n    }\n    int x = 0;\n    for (int i = 0; i < 16; ++i) x ^= (i[p] << (i & 3));\n    printf(\"%d %d\\n\", s, x);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_004",
+      "tier": 3,
+      "algorithm_concept": "Linked-index array permutation following with visited tracking and XOR accumulation.",
+      "complexity_tags": [
+        "pointers",
+        "permutation",
+        "bitwise"
+      ],
+      "ground_truth_stdout": "39 250",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int nxt[8] = {3, 6, 1, 0, 5, 2, 7, 4};\n    int val[8] = {11, 22, 33, 44, 55, 66, 77, 88};\n    int seen[8] = {0};\n    int total = 0;\n    int cur = 0;\n    for (int step = 0; step < 8; ++step) {\n        if (seen[cur]) break;\n        seen[cur] = 1;\n        total ^= *(val + cur);\n        cur = *(nxt + cur);\n    }\n    int acc = 0;\n    for (int i = 0; i < 8; ++i) acc += (*(val + i) & 0xF) << (i & 3);\n    printf(\"%d %d\\n\", total, acc);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int nx_2[8] = {3, 6, 1, 0, 5, 2, 7, 4};\n    int vv_3[8] = {11, 22, 33, 44, 55, 66, 77, 88};\n    int sn_4[8] = {0};\n    int tt = 0, cc = 0;\n    for (int ss = 0; ss < 8; ++ss) {\n        if (sn_4[cc]) break;\n        sn_4[cc] = 1;\n        tt ^= *(vv_3 + cc);\n        cc = *(nx_2 + cc);\n    }\n    int aa = 0, ii = 0;\n    while (ii < 8) { aa += (*(vv_3 + ii) & 0xF) << (ii & 3); ++ii; }\n    printf(\"%d %d\\n\", tt, aa);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int n[8] = {3, 6, 1, 0, 5, 2, 7, 4};\n    int v[8] = {11, 22, 33, 44, 55, 66, 77, 88};\n    int s[8] = {0};\n    int t = 0, c = 0, i = 0, st = 0;\n    while (st != 2) {\n        switch (st) {\n            case 0: if (i < 8 && !s[c]) st = 1; else st = 2; break;\n            case 1: s[c] = 1; t ^= c[v]; c = c[n]; ++i; st = 0; break;\n            default: st = 2; break;\n        }\n    }\n    int a = 0; i = 0;\n    while (i < 8) { a += (i[v] & 0xF) << (i & 3); ++i; }\n    printf(\"%d %d\\n\", t, a);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_005",
+      "tier": 3,
+      "algorithm_concept": "Bitboard cellular automaton update for six generations with popcount checksum.",
+      "complexity_tags": [
+        "bitwise",
+        "state",
+        "loops"
+      ],
+      "ground_truth_stdout": "0x5ad8 8",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t step(uint32_t x) {\n    uint32_t l = (x << 1) & 0xFFFFu;\n    uint32_t r = (x >> 1) & 0xFFFFu;\n    return (l ^ r ^ x) & 0xFFFFu;\n}\nint main(void) {\n    uint32_t state = 0xACE1u;\n    for (int g = 0; g < 6; ++g) state = step(state);\n    int ones = 0;\n    for (int i = 0; i < 16; ++i) ones += (int)((state >> i) & 1u);\n    printf(\"0x%x %d\\n\", (unsigned)state, ones);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t fn_a(uint32_t z) {\n    uint32_t u = (z << 1) & 0xFFFFu;\n    uint32_t v = (z >> 1) & 0xFFFFu;\n    return (u ^ v ^ z) & 0xFFFFu;\n}\nint main(void) {\n    uint32_t st = 0xACE1u;\n    int gg = 0;\n    while (gg < 6) { st = fn_a(st); ++gg; }\n    int cnt = 0;\n    for (int q = 0; q < 16; ++q) cnt += (int)((st >> q) & 1u);\n    printf(\"0x%x %d\\n\", (unsigned)st, cnt);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t s(uint32_t x) {\n    uint32_t a = (x << 1) & 0xFFFFu, b = (x >> 1) & 0xFFFFu;\n    return (a ^ b ^ x) & 0xFFFFu;\n}\nstatic int pc(uint32_t x, int i) {\n    if (i >= 16) return 0;\n    return (int)((x & (1u << i)) >> i) + pc(x, i + 1);\n}\nint main(void) {\n    uint32_t st = 0xACE1u;\n    int g = 0;\n    while (g < 6) { st = s(st); ++g; }\n    int o = pc(st, 0);\n    printf(\"0x%x %d\\n\", (unsigned)st, o);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_006",
+      "tier": 3,
+      "algorithm_concept": "Recursive divide-and-conquer array reduction using bitwise addition identity.",
+      "complexity_tags": [
+        "recursion",
+        "pointers",
+        "bitwise"
+      ],
+      "ground_truth_stdout": "289 497",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int reduce(const int *a, int lo, int hi) {\n    if (hi - lo <= 1) return *(a + lo);\n    int mid = (lo + hi) >> 1;\n    int x = reduce(a, lo, mid);\n    int y = reduce(a, mid, hi);\n    return (x ^ y) + ((x & y) << 1);\n}\nint main(void) {\n    int a[10];\n    for (int i = 0; i < 10; ++i) a[i] = (i * 11 + 5) & 63;\n    int r = reduce(a, 0, 10);\n    int t = 0;\n    for (int i = 0; i < 10; ++i) t ^= (*(a + i) << (i & 3));\n    printf(\"%d %d\\n\", r, t);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int fn_r(const int *p, int l, int h) {\n    if (h - l <= 1) return *(p + l);\n    int m = (l + h) >> 1;\n    int u = fn_r(p, l, m);\n    int v = fn_r(p, m, h);\n    return (u ^ v) + ((u & v) << 1);\n}\nint main(void) {\n    int ar[10];\n    int i = 0;\n    while (i < 10) { ar[i] = (i * 11 + 5) & 63; ++i; }\n    int rr = fn_r(ar, 0, 10);\n    int tt = 0;\n    for (int j = 0; j < 10; ++j) tt ^= (*(ar + j) << (j & 3));\n    printf(\"%d %d\\n\", rr, tt);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int f(const int *p, int l, int h) {\n    if (h - l <= 1) return l[p];\n    int m = (l + h) >> 1;\n    int x = f(p, l, m), y = f(p, m, h);\n    return (x ^ y) + ((x & y) << 1);\n}\nint main(void) {\n    int a[10];\n    for (int i = 0; i < 10; ++i) i[a] = (i * 11 + 5) & 63;\n    int r = f(a, 0, 10);\n    int t = 0, i = 0;\n    while (i < 10) { t ^= (i[a] << (i & 3)); ++i; }\n    printf(\"%d %d\\n\", r, t);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_007",
+      "tier": 3,
+      "algorithm_concept": "Struct-based stack machine interpreter executing push and XOR-add operations.",
+      "complexity_tags": [
+        "struct",
+        "pointers",
+        "state mutation"
+      ],
+      "ground_truth_stdout": "12",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\ntypedef struct { int d[8]; int top; } Stack;\nstatic void push(Stack *s, int v) { s->d[s->top++] = v; }\nstatic int pop(Stack *s) { return s->d[--s->top]; }\nint main(void) {\n    Stack st = {{0}, 0};\n    int prog[6] = {1, 5, 1, 7, 2, 0};\n    for (int i = 0; i < 6; ++i) {\n        int op = *(prog + i);\n        if (op == 1) push(&st, *(prog + (++i)));\n        else if (op == 2) {\n            int a = pop(&st);\n            int b = pop(&st);\n            push(&st, (a ^ b) + ((a & b) << 1));\n        }\n    }\n    int res = pop(&st);\n    printf(\"%d\\n\", res);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\ntypedef struct { int dd[8]; int tp; } St_7;\nstatic void fn_p(St_7 *ss, int vv) { ss->dd[ss->tp++] = vv; }\nstatic int fn_q(St_7 *ss) { return ss->dd[--ss->tp]; }\nint main(void) {\n    St_7 sx = {{0}, 0};\n    int pr[6] = {1, 5, 1, 7, 2, 0};\n    int ii = 0;\n    while (ii < 6) {\n        int op = *(pr + ii);\n        if (op == 1) { ++ii; fn_p(&sx, *(pr + ii)); }\n        else if (op == 2) {\n            int aa = fn_q(&sx);\n            int bb = fn_q(&sx);\n            fn_p(&sx, (aa ^ bb) + ((aa & bb) << 1));\n        }\n        ++ii;\n    }\n    int rr = fn_q(&sx);\n    printf(\"%d\\n\", rr);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\ntypedef struct { int d[8]; int top; } S;\nstatic void p(S *s, int v) { *(s->d + s->top++) = v; }\nstatic int q(S *s) { return *(s->d + --s->top); }\nint main(void) {\n    S s = {{0}, 0};\n    int pr[6] = {1, 5, 1, 7, 2, 0};\n    int i = 0, st = 0;\n    while (st != 2) {\n        switch (st) {\n            case 0: if (i < 6) st = 1; else st = 2; break;\n            case 1: {\n                int op = i[pr];\n                if (op == 1) { p(&s, (++i)[pr]); }\n                else if (op == 2) { int a = q(&s), b = q(&s); p(&s, (a ^ b) + ((a & b) << 1)); }\n                ++i; st = 0; break;\n            }\n            default: st = 2; break;\n        }\n    }\n    int r = q(&s);\n    printf(\"%d\\n\", r);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_008",
+      "tier": 3,
+      "algorithm_concept": "CRC-style polynomial bit shift register over 16-bit data with popcount checksum.",
+      "complexity_tags": [
+        "bitwise",
+        "uint32_t",
+        "loops"
+      ],
+      "ground_truth_stdout": "0x13c6 7",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t crc(uint32_t data, uint32_t poly) {\n    uint32_t reg = data;\n    for (int i = 0; i < 16; ++i) {\n        if (reg & 0x8000u) reg = ((reg << 1) ^ poly) & 0xFFFFu;\n        else reg = (reg << 1) & 0xFFFFu;\n    }\n    return reg;\n}\nint main(void) {\n    uint32_t d = 0x1234u;\n    uint32_t p = 0x1021u;\n    uint32_t r = crc(d, p);\n    int s = 0;\n    for (int i = 0; i < 16; ++i) s += (int)((r >> i) & 1u);\n    printf(\"0x%x %d\\n\", (unsigned)r, s);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t fn_c(uint32_t dd, uint32_t pp) {\n    uint32_t rr = dd;\n    int ii = 0;\n    while (ii < 16) {\n        if (rr & 0x8000u) rr = ((rr << 1) ^ pp) & 0xFFFFu;\n        else rr = (rr << 1) & 0xFFFFu;\n        ++ii;\n    }\n    return rr;\n}\nint main(void) {\n    uint32_t da = 0x1234u;\n    uint32_t po = 0x1021u;\n    uint32_t re = fn_c(da, po);\n    int ss = 0;\n    for (int j = 0; j < 16; ++j) ss += (int)((re >> j) & 1u);\n    printf(\"0x%x %d\\n\", (unsigned)re, ss);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nstatic uint32_t f(uint32_t x, uint32_t p) {\n    uint32_t r = x;\n    for (int i = 0; i < 16; ++i) {\n        r = ((r & 0x8000u) ? ((r << 1) ^ p) : (r << 1)) & 0xFFFFu;\n    }\n    return r;\n}\nstatic int pc(uint32_t x, int i) {\n    if (i >= 16) return 0;\n    return (int)((x >> i) & 1u) + pc(x, i + 1);\n}\nint main(void) {\n    uint32_t d = 0x1234u, p = 0x1021u;\n    uint32_t r = f(d, p);\n    int s = pc(r, 0);\n    printf(\"0x%x %d\\n\", (unsigned)r, s);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_009",
+      "tier": 3,
+      "algorithm_concept": "Pointer-strided matrix transpose checksum over a 3x4 matrix.",
+      "complexity_tags": [
+        "2D arrays",
+        "pointers",
+        "bitwise"
+      ],
+      "ground_truth_stdout": "198 135",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int a[3][4];\n    for (int i = 0; i < 3; ++i)\n        for (int j = 0; j < 4; ++j)\n            a[i][j] = (i * 7 + j * 5 + 2) & 31;\n    int *p = &a[0][0];\n    int sum = 0;\n    for (int i = 0; i < 4; ++i)\n        for (int j = 0; j < 3; ++j)\n            sum += *(p + j * 4 + i);\n    int x = 0;\n    for (int i = 0; i < 12; ++i) x ^= (*(p + i) << (i & 3));\n    printf(\"%d %d\\n\", sum, x);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int st[3][4];\n    int ii = 0;\n    while (ii < 3) {\n        int jj = 0;\n        while (jj < 4) { st[ii][jj] = (ii * 7 + jj * 5 + 2) & 31; ++jj; }\n        ++ii;\n    }\n    int *pp = &st[0][0];\n    int ss = 0;\n    for (int q = 0; q < 4; ++q)\n        for (int r = 0; r < 3; ++r)\n            ss += *(pp + r * 4 + q);\n    int xx = 0;\n    for (int z = 0; z < 12; ++z) xx ^= (*(pp + z) << (z & 3));\n    printf(\"%d %d\\n\", ss, xx);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n    int m[3][4];\n    for (int i = 0; i < 3; ++i)\n        for (int j = 0; j < 4; ++j)\n            m[i][j] = (i * 7 + j * 5 + 2) & 31;\n    int *p = &m[0][0];\n    int s = 0;\n    for (int i = 0; i < 4; ++i)\n        for (int j = 0; j < 3; ++j)\n            s += (j * 4 + i)[p];\n    int x = 0;\n    for (int i = 0; i < 12; ++i) x ^= (i[p] << (i & 3));\n    printf(\"%d %d\\n\", s, x);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier3_010",
+      "tier": 3,
+      "algorithm_concept": "Bounded mutual recursion between two functions with bitwise mixing.",
+      "complexity_tags": [
+        "recursion",
+        "bitwise",
+        "multi-function"
+      ],
+      "ground_truth_stdout": "68",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int f(int n);\nstatic int g(int n) {\n    if (n <= 0) return 1;\n    return (n & 7) + f(n - 1);\n}\nstatic int f(int n) {\n    if (n <= 0) return 2;\n    return ((n << 1) ^ g(n - 1)) & 31;\n}\nint main(void) {\n    int s = 0;\n    for (int i = 0; i < 8; ++i) s += f(i) ^ g(i);\n    printf(\"%d\\n\", s);\n    return 0;\n}\n",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int fn_a(int nn);\nstatic int fn_b(int nn) {\n    if (nn <= 0) return 1;\n    return (nn & 7) + fn_a(nn - 1);\n}\nstatic int fn_a(int nn) {\n    if (nn <= 0) return 2;\n    return ((nn << 1) ^ fn_b(nn - 1)) & 31;\n}\nint main(void) {\n    int ss = 0;\n    int ii = 0;\n    while (ii < 8) { ss += fn_a(ii) ^ fn_b(ii); ++ii; }\n    printf(\"%d\\n\", ss);\n    return 0;\n}\n",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\nstatic int f(int n);\nstatic int g(int n) {\n    return n <= 0 ? 1 : (n & 7) + f(n - 1);\n}\nstatic int f(int n) {\n    return n <= 0 ? 2 : ((n << 1) ^ g(n - 1)) & 31;\n}\nint main(void) {\n    int s = 0, i = 0;\n    while (i < 8) { s += (f(i) ^ g(i)); ++i; }\n    printf(\"%d\\n\", s);\n    return 0;\n}\n"
+    },
+    {
+      "id": "tier4_001",
+      "tier": 4,
+      "algorithm_concept": "16-bit LFSR with 500000 steps and a byte-pattern counter.",
+      "complexity_tags": [
+        "lfsr",
+        "cycle",
+        "bitwise"
+      ],
+      "ground_truth_stdout": "11473 1944",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t state = 0xACE1u;\n    int steps = 500000;\n    unsigned seen = 0u;\n\n    for (int i = 0; i < steps; ++i) {\n        uint32_t bit = ((state >> 0) ^ (state >> 2) ^ (state >> 3) ^ (state >> 5)) & 1u;\n        state = (state >> 1) | (bit << 15);\n        state &= 0xFFFFu;\n        if ((state & 0xFFu) == 0x42u) {\n            seen++;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)state, seen);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t reg_7c = 0xACE1u;\n    unsigned tbl_09 = 0u;\n    int op_v5 = 500000;\n\n    for (int i = 0; i < op_v5; ++i) {\n        uint32_t bit = ((reg_7c >> 0) ^ (reg_7c >> 2) ^ (reg_7c >> 3) ^ (reg_7c >> 5)) & 1u;\n        reg_7c = (reg_7c >> 1) | (bit << 15);\n        reg_7c &= 0xFFFFu;\n        if ((reg_7c & 0xFFu) == 0x42u) {\n            tbl_09++;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)reg_7c, tbl_09);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t s = 0xACE1u;\n    unsigned c = 0u;\n    int n = 500000;\n    int i = 0;\n    int st = 0;\n\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (i < n) st = 1; else st = 2;\n                break;\n            case 1: {\n                uint32_t b = ((s >> 0) ^ (s >> 2) ^ (s >> 3) ^ (s >> 5)) & 1u;\n                s = (s >> 1) | (b << 15);\n                s &= 0xFFFFu;\n                if ((s & 0xFFu) == 0x42u) c++;\n                ++i;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)s, c);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_002",
+      "tier": 4,
+      "algorithm_concept": "Permutation iteration on an 8-element array for 100000 steps.",
+      "complexity_tags": [
+        "permutation",
+        "cycle_detection",
+        "array"
+      ],
+      "ground_truth_stdout": "0 1 2 3 4 5 6 7",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int a[8] = {0, 1, 2, 3, 4, 5, 6, 7};\n    int b[8];\n    int p[8] = {3, 1, 7, 0, 5, 2, 6, 4};\n    int steps = 100000;\n\n    for (int s = 0; s < steps; ++s) {\n        for (int i = 0; i < 8; ++i) {\n            b[i] = a[p[i]];\n        }\n        for (int i = 0; i < 8; ++i) {\n            a[i] = b[i];\n        }\n    }\n\n    printf(\"%d %d %d %d %d %d %d %d\\n\",\n           a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int tbl_09[8] = {0, 1, 2, 3, 4, 5, 6, 7};\n    int tmp_4[8];\n    int op_v5[8] = {3, 1, 7, 0, 5, 2, 6, 4};\n    int reg_7c = 100000;\n\n    for (int k = 0; k < reg_7c; ++k) {\n        for (int j = 0; j < 8; ++j) {\n            tmp_4[j] = tbl_09[op_v5[j]];\n        }\n        for (int j = 0; j < 8; ++j) {\n            tbl_09[j] = tmp_4[j];\n        }\n    }\n\n    printf(\"%d %d %d %d %d %d %d %d\\n\",\n           tbl_09[0], tbl_09[1], tbl_09[2], tbl_09[3],\n           tbl_09[4], tbl_09[5], tbl_09[6], tbl_09[7]);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int arr_2[8] = {0, 1, 2, 3, 4, 5, 6, 7};\n    int tmp_4[8];\n    int tbl_09[8] = {3, 1, 7, 0, 5, 2, 6, 4};\n    int idx_1 = 0;\n\n    while (idx_1 < 100000) {\n        int j = 0;\n        while (j < 8) {\n            *(tmp_4 + j) = *(arr_2 + *(tbl_09 + j));\n            ++j;\n        }\n        j = 0;\n        while (j < 8) {\n            *(arr_2 + j) = *(tmp_4 + j);\n            ++j;\n        }\n        ++idx_1;\n    }\n\n    printf(\"%d %d %d %d %d %d %d %d\\n\",\n           *(arr_2 + 0), *(arr_2 + 1), *(arr_2 + 2), *(arr_2 + 3),\n           *(arr_2 + 4), *(arr_2 + 5), *(arr_2 + 6), *(arr_2 + 7));\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_003",
+      "tier": 4,
+      "algorithm_concept": "Affine congruential map modulo 101 converging toward a fixed cycle.",
+      "complexity_tags": [
+        "affine",
+        "fixed_point",
+        "modular"
+      ],
+      "ground_truth_stdout": "5 10000",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t state = 5u;\n    unsigned hits = 0u;\n    int steps = 100000;\n\n    for (int i = 0; i < steps; ++i) {\n        state = (17u * state + 23u) % 101u;\n        if (state == 42u) {\n            hits++;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)state, hits);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t reg_7c = 5u;\n    unsigned op_v5 = 0u;\n    int tbl_09 = 100000;\n\n    for (int k = 0; k < tbl_09; ++k) {\n        reg_7c = (17u * reg_7c + 23u) % 101u;\n        if (reg_7c == 42u) {\n            op_v5++;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)reg_7c, op_v5);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t reg_7c = 5u;\n    unsigned op_v5 = 0u;\n    int tbl_09 = 100000;\n    int i = 0;\n    int st = 0;\n\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (i < tbl_09) st = 1; else st = 2;\n                break;\n            case 1: {\n                reg_7c = ((reg_7c << 4) + reg_7c + 23u) % 101u;\n                if (reg_7c == 42u) op_v5++;\n                ++i;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)reg_7c, op_v5);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_004",
+      "tier": 4,
+      "algorithm_concept": "12-bit ring cellular automaton with XOR neighborhood over 250000 generations.",
+      "complexity_tags": [
+        "cellular_automaton",
+        "bitwise",
+        "ring"
+      ],
+      "ground_truth_stdout": "0x123 4",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t state = 0x123u;\n    int steps = 250000;\n\n    for (int g = 0; g < steps; ++g) {\n        uint32_t next = 0u;\n        for (int j = 0; j < 12; ++j) {\n            uint32_t l = (state >> ((j + 11) % 12)) & 1u;\n            uint32_t r = (state >> ((j + 1) % 12)) & 1u;\n            next |= ((l ^ r) << j);\n        }\n        state = next;\n    }\n\n    int ones = 0;\n    for (int j = 0; j < 12; ++j) {\n        ones += (int)((state >> j) & 1u);\n    }\n\n    printf(\"0x%x %d\\n\", (unsigned)state, ones);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t reg_7c = 0x123u;\n    int op_v5 = 250000;\n\n    for (int k = 0; k < op_v5; ++k) {\n        uint32_t tbl_09 = 0u;\n        for (int j = 0; j < 12; ++j) {\n            uint32_t a = (reg_7c >> ((j + 11) % 12)) & 1u;\n            uint32_t b = (reg_7c >> ((j + 1) % 12)) & 1u;\n            tbl_09 |= ((a ^ b) << j);\n        }\n        reg_7c = tbl_09;\n    }\n\n    int c = 0;\n    for (int j = 0; j < 12; ++j) {\n        c += (int)((reg_7c >> j) & 1u);\n    }\n\n    printf(\"0x%x %d\\n\", (unsigned)reg_7c, c);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t s = 0x123u;\n    int n = 250000;\n    int g = 0;\n    int st = 0;\n    int ones = 0;\n\n    while (st != 3) {\n        switch (st) {\n            case 0:\n                if (g < n) st = 1; else st = 2;\n                break;\n            case 1: {\n                uint32_t nx = 0u;\n                int j = 0;\n                while (j < 12) {\n                    uint32_t l = (s >> ((j + 11) % 12)) & 1u;\n                    uint32_t r = (s >> ((j + 1) % 12)) & 1u;\n                    nx |= ((l ^ r) << j);\n                    ++j;\n                }\n                s = nx;\n                ++g;\n                st = 0;\n                break;\n            }\n            case 2: {\n                int j = 0;\n                while (j < 12) {\n                    ones += (int)((s >> j) & 1u);\n                    ++j;\n                }\n                st = 3;\n                break;\n            }\n            default:\n                st = 3;\n                break;\n        }\n    }\n\n    printf(\"0x%x %d\\n\", (unsigned)s, ones);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_005",
+      "tier": 4,
+      "algorithm_concept": "Fibonacci recurrence modulo 1000 over one million steps.",
+      "complexity_tags": [
+        "pisano",
+        "recurrence",
+        "modular"
+      ],
+      "ground_truth_stdout": "875 501",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t a = 0u;\n    uint32_t b = 1u;\n    int steps = 1000000;\n\n    for (int i = 0; i < steps; ++i) {\n        uint32_t c = (a + b) % 1000u;\n        a = b;\n        b = c;\n    }\n\n    printf(\"%u %u\\n\", (unsigned)a, (unsigned)b);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t reg_7c = 0u;\n    uint32_t tbl_09 = 1u;\n    int op_v5 = 1000000;\n\n    for (int k = 0; k < op_v5; ++k) {\n        uint32_t tmp_4 = (reg_7c + tbl_09) % 1000u;\n        reg_7c = tbl_09;\n        tbl_09 = tmp_4;\n    }\n\n    printf(\"%u %u\\n\", (unsigned)reg_7c, (unsigned)tbl_09);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t x = 0u;\n    uint32_t y = 1u;\n    int n = 1000000;\n    int i = 0;\n    int st = 0;\n\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (i < n) st = 1; else st = 2;\n                break;\n            case 1: {\n                uint32_t z = ((x ^ y) + 2u * (x & y)) % 1000u;\n                x = y;\n                y = z;\n                ++i;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)x, (unsigned)y);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_006",
+      "tier": 4,
+      "algorithm_concept": "Self-modifying index walk on a 16-element table entering a short cycle.",
+      "complexity_tags": [
+        "index_walk",
+        "cycle",
+        "self_modifying"
+      ],
+      "ground_truth_stdout": "6 31250",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int a[16];\n    for (int i = 0; i < 16; ++i) {\n        a[i] = (i * 5 + 3) % 16;\n    }\n\n    int idx = 0;\n    unsigned visits = 0u;\n    int steps = 500000;\n\n    for (int i = 0; i < steps; ++i) {\n        idx = a[idx];\n        a[idx] = (a[idx] + 1) & 15;\n        if (idx == 7) {\n            visits++;\n        }\n    }\n\n    printf(\"%d %u\\n\", idx, visits);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int tbl_09[16];\n    for (int j = 0; j < 16; ++j) {\n        tbl_09[j] = (j * 5 + 3) % 16;\n    }\n\n    int idx_1 = 0;\n    unsigned op_v5 = 0u;\n    int reg_7c = 500000;\n\n    for (int k = 0; k < reg_7c; ++k) {\n        idx_1 = tbl_09[idx_1];\n        tbl_09[idx_1] = (tbl_09[idx_1] + 1) & 15;\n        if (idx_1 == 7) {\n            op_v5++;\n        }\n    }\n\n    printf(\"%d %u\\n\", idx_1, op_v5);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int tbl_09[16];\n    int j = 0;\n    while (j < 16) {\n        *(tbl_09 + j) = (j * 5 + 3) % 16;\n        ++j;\n    }\n\n    int idx_1 = 0;\n    unsigned op_v5 = 0u;\n    int n = 500000;\n    int k = 0;\n    int st = 0;\n\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (k < n) st = 1; else st = 2;\n                break;\n            case 1: {\n                idx_1 = *(tbl_09 + idx_1);\n                *(tbl_09 + idx_1) = (*(tbl_09 + idx_1) + 1) & 15;\n                if (idx_1 == 7) op_v5++;\n                ++k;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n\n    printf(\"%d %u\\n\", idx_1, op_v5);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_007",
+      "tier": 4,
+      "algorithm_concept": "Alternating XOR and 8-bit rotate state machine over 300000 steps.",
+      "complexity_tags": [
+        "xor_rotate",
+        "state_machine",
+        "period"
+      ],
+      "ground_truth_stdout": "90 0",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t state = 0x5Au;\n    unsigned hits = 0u;\n    int steps = 300000;\n\n    for (int i = 0; i < steps; ++i) {\n        if ((i & 1) == 0) {\n            state ^= 0x3Cu;\n        } else {\n            state = ((state << 1) | (state >> 7)) & 0xFFu;\n        }\n        if (state == 0x96u) {\n            hits++;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)state, hits);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t reg_7c = 0x5Au;\n    unsigned tbl_09 = 0u;\n    int op_v5 = 300000;\n\n    for (int k = 0; k < op_v5; ++k) {\n        if ((k & 1) == 0) {\n            reg_7c ^= 0x3Cu;\n        } else {\n            reg_7c = ((reg_7c << 1) | (reg_7c >> 7)) & 0xFFu;\n        }\n        if (reg_7c == 0x96u) {\n            tbl_09++;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)reg_7c, tbl_09);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t s = 0x5Au;\n    unsigned c = 0u;\n    int n = 300000;\n    int i = 0;\n    int st = 0;\n\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (i < n) st = 1; else st = 2;\n                break;\n            case 1: {\n                if ((i & 1) == 0) {\n                    s ^= 0x3Cu;\n                } else {\n                    s = ((s << 1) | (s >> 7)) & 0xFFu;\n                }\n                if (s == 0x96u) c++;\n                ++i;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)s, c);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_008",
+      "tier": 4,
+      "algorithm_concept": "Subtractive GCD invariant loop with large initial offsets.",
+      "complexity_tags": [
+        "gcd",
+        "invariant",
+        "subtraction"
+      ],
+      "ground_truth_stdout": "64 64",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t a = 1000000u;\n    uint32_t b = 123456u;\n    int steps = 200000;\n\n    for (int i = 0; i < steps; ++i) {\n        if (a == b) {\n            break;\n        }\n        if (a > b) {\n            a -= b;\n        } else {\n            b -= a;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)a, (unsigned)b);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t reg_7c = 1000000u;\n    uint32_t tbl_09 = 123456u;\n    int op_v5 = 200000;\n\n    for (int k = 0; k < op_v5; ++k) {\n        if (reg_7c == tbl_09) {\n            break;\n        }\n        if (reg_7c > tbl_09) {\n            reg_7c -= tbl_09;\n        } else {\n            tbl_09 -= reg_7c;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)reg_7c, (unsigned)tbl_09);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t x = 1000000u;\n    uint32_t y = 123456u;\n    int n = 200000;\n    int i = 0;\n    int st = 0;\n\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (i >= n || x == y) st = 2; else st = 1;\n                break;\n            case 1: {\n                if (x > y) x -= y; else y -= x;\n                ++i;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)x, (unsigned)y);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_009",
+      "tier": 4,
+      "algorithm_concept": "Three-bucket deterministic transfer preserving total mass over 50000 steps.",
+      "complexity_tags": [
+        "conservation",
+        "bucket_transfer",
+        "invariant"
+      ],
+      "ground_truth_stdout": "7 21 32 60",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int b[3] = {10, 20, 30};\n    int steps = 50000;\n\n    for (int i = 0; i < steps; ++i) {\n        int from = i % 3;\n        int to = (from + 1) % 3;\n        int amt = b[from] % 7;\n        b[from] -= amt;\n        b[to] += amt;\n    }\n\n    unsigned sum = (unsigned)(b[0] + b[1] + b[2]);\n    printf(\"%d %d %d %u\\n\", b[0], b[1], b[2], sum);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int tbl_09[3] = {10, 20, 30};\n    int op_v5 = 50000;\n\n    for (int k = 0; k < op_v5; ++k) {\n        int reg_7c = k % 3;\n        int tmp_4 = (reg_7c + 1) % 3;\n        int a = tbl_09[reg_7c] % 7;\n        tbl_09[reg_7c] -= a;\n        tbl_09[tmp_4] += a;\n    }\n\n    unsigned s = (unsigned)(tbl_09[0] + tbl_09[1] + tbl_09[2]);\n    printf(\"%d %d %d %u\\n\", tbl_09[0], tbl_09[1], tbl_09[2], s);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    int t[3] = {10, 20, 30};\n    int n = 50000;\n    int i = 0;\n    int st = 0;\n    unsigned s = 0u;\n\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (i < n) st = 1; else st = 2;\n                break;\n            case 1: {\n                int f = i % 3;\n                int g = (f + 1) % 3;\n                int a = *(t + f) % 7;\n                *(t + f) -= a;\n                *(t + g) += a;\n                ++i;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n\n    s = (unsigned)(*(t + 0) + *(t + 1) + *(t + 2));\n    printf(\"%d %d %d %u\\n\", *(t + 0), *(t + 1), *(t + 2), s);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    },
+    {
+      "id": "tier4_010",
+      "tier": 4,
+      "algorithm_concept": "Polynomial rolling hash cycle modulo 1009 over 200000 steps.",
+      "complexity_tags": [
+        "polynomial_hash",
+        "finite_field",
+        "cycle"
+      ],
+      "ground_truth_stdout": "749 0",
+      "classic_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t h = 0u;\n    unsigned hits = 0u;\n    int steps = 200000;\n\n    for (int i = 0; i < steps; ++i) {\n        h = (h * 31u + (uint32_t)(i % 7)) % 1009u;\n        if (h == 42u) {\n            hits++;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)h, hits);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "randomized_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t reg_7c = 0u;\n    unsigned op_v5 = 0u;\n    int tbl_09 = 200000;\n\n    for (int k = 0; k < tbl_09; ++k) {\n        reg_7c = (reg_7c * 31u + (uint32_t)(k % 7)) % 1009u;\n        if (reg_7c == 42u) {\n            op_v5++;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)reg_7c, op_v5);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}",
+      "strange_c": "#include <stdio.h>\n#include <stdint.h>\n\nint main(void) {\n    uint32_t v = 0u;\n    unsigned c = 0u;\n    int n = 200000;\n    int i = 0;\n    int st = 0;\n\n    while (st != 2) {\n        switch (st) {\n            case 0:\n                if (i < n) st = 1; else st = 2;\n                break;\n            case 1: {\n                uint32_t m = (uint32_t)(i % 7);\n                v = (v * 31u + m) % 1009u;\n                if (v == 42u) c++;\n                ++i;\n                st = 0;\n                break;\n            }\n            default:\n                st = 2;\n                break;\n        }\n    }\n\n    printf(\"%u %u\\n\", (unsigned)v, c);\n    return 0;\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n}"
+    }
+  ],
+  "rejected": []
+}

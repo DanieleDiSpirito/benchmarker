@@ -58,7 +58,7 @@ def extract_predicted_stdout(raw_text: str) -> tuple[str, str]:
     """Returns (predicted_stdout, reasoning_summary)."""
     text = raw_text.strip()
     # Try parsing JSON block inside response
-    json_match = re.search(r"\{[\s\S]*?"stdout"[\s\S]*?\}", text)
+    json_match = re.search(r\'\{[\s\S]*?"stdout"[\s\S]*?\}\', text)
     if json_match:
         try:
             obj = json.loads(json_match.group(0))
@@ -94,6 +94,7 @@ def make_isolated_workspace() -> pathlib.Path:
     (codex_home / "config.toml").write_text(
         'approval_policy = "never"\n'
         'sandbox_mode = "read-only"\n'
+        'model_reasoning_effort = "medium"\n'
         "[features]\n"
         "shell_tool = false\n"
         "apply_patch_freeform = false\n"
@@ -113,6 +114,8 @@ def run_claude(prompt: str, model: str | None, ws: pathlib.Path, timeout: int) -
         "--restricted",
         "--tools",
         "",
+        "--effort",
+        "medium",
         "--no-session-persistence",
         "--output-format",
         "json",
@@ -159,6 +162,8 @@ def run_codex(prompt: str, model: str | None, ws: pathlib.Path, timeout: int) ->
         "--json",
         "--ephemeral",
         "--skip-git-repo-check",
+        "-c",
+        "model_reasoning_effort=medium",
         "-s",
         "read-only",
         "-o",
@@ -209,6 +214,8 @@ def run_agy(prompt: str, model: str | None, ws: pathlib.Path, timeout: int) -> d
         prompt,
         "--agent",
         "no-tools",
+        "--effort",
+        "medium",
         "--output-format",
         "json",
     ]

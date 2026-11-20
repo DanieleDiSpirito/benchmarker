@@ -6,6 +6,13 @@
    "preset": "mini",
    "os": "Darwin arm64",
    "python": "3.14.7"
+  },
+  {
+   "started": "2026-11-20T14:25:29+00:00",
+   "cli_version": "2.1.329 (Claude Code)",
+   "preset": "mini",
+   "os": "Darwin arm64",
+   "python": "3.14.7"
   }
  ]
 }

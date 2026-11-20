@@ -19,9 +19,11 @@ from reportlab.platypus import (BaseDocTemplate, Frame, Image, KeepTogether, Nex
                                 PageTemplate, Paragraph, Spacer, Table, TableStyle)
 
 from . import charts
-from .analysis import collect, model_summary
-from .config import PAPER_DIR, RESULTS_DIR, all_models, price_for
-from .datasets import BENCHMARKS, EXCLUDED
+from .clusters import cluster
+from .analysis import MIN_STEPS, collect, model_summary, quota_text
+from . import config as cfg
+from .config import all_models, backend_settings, price_for
+from .datasets import bench_info, is_legacy_suite
 
 # ---------------------------------------------------------------- fonts & styles
 _FONT_DIR = Path(matplotlib.get_data_path()) / "fonts" / "ttf"
@@ -34,9 +36,7 @@ pdfmetrics.registerFontFamily("Sans", normal="Sans", bold="Sans-B", italic="Sans
 
 INK = colors.HexColor("#0b0b0b")
 INK2 = colors.HexColor("#52514e")
-RULE = colors.HexColor("#b8b7b0")
 ZEBRA = colors.HexColor("#f4f4f1")
-ACCENT = colors.HexColor("#2a78d6")
 
 ST = {
     "title": ParagraphStyle("title", fontName="Serif-B", fontSize=17, leading=21, alignment=1, spaceAfter=6, textColor=INK),
@@ -54,42 +54,48 @@ ST = {
     "code": ParagraphStyle("code", fontName="Mono", fontSize=7.6, leading=10, leftIndent=10, textColor=INK, spaceAfter=2),
 }
 
+TITLE = "Which $20 AI Subscription Gives a Student the Most?"
+SUBTITLE = ("Model quality versus usable quota on OpenAI, Anthropic and Google plans: cost per answer, "
+            "token usage, response time and 5-hour / weekly limits")
+AUTHORS = ["Daniele Di Spirito", "Maurizio Camposeo"]
 
-# ---------------------------------------------------------------- number formatting (Italian)
+CLI_NAMES = {"agy": "Antigravity CLI (<i>agy</i>)", "claude": "Claude Code", "codex": "OpenAI Codex CLI"}
+
+
+# ---------------------------------------------------------------- number formatting
 def num(v, d=1, dash="–"):
-    if v is None:
-        return dash
-    s = f"{v:,.{d}f}"
-    return s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return dash if v is None else f"{v:,.{d}f}"
 
 
 def pct(v, d=1, dash="–"):
-    return dash if v is None else num(100 * v, d) + "%"
+    return dash if v is None else f"{100 * v:,.{d}f}%"
 
 
 def usd(v, dash="–"):
     if v is None:
         return dash
-    d = 4 if abs(v) < 0.1 else 3 if abs(v) < 10 else 2
-    return "$" + num(v, d)
+    return "$" + num(v, 4 if abs(v) < 0.1 else 3 if abs(v) < 10 else 2)
 
 
 def ktok(v):
     if v is None:
         return "–"
-    return num(v / 1000, 1) + "k" if v >= 1000 else num(v, 0)
+    return f"{v / 1000:,.1f}k" if v >= 1000 else f"{v:,.0f}"
 
 
 def P(t, s="body"):
     return Paragraph(t, ST[s])
 
 
-def table(rows, widths, header_rows=1, align_right_from=1, zebra=True, bold_first_col=False):
+def B(t):
+    return Paragraph(t, ST["bullet"], bulletText="•")
+
+
+def table(rows, widths, header_rows=1, bold_first_col=False):
     data = []
     for i, r in enumerate(rows):
-        st = "cellb" if i < header_rows else "cell"
         data.append([c if not isinstance(c, str) else Paragraph(
-            c, ST["cellb"] if (i < header_rows or (bold_first_col and j == 0)) else ST[st]) for j, c in enumerate(r)])
+            c, ST["cellb"] if (i < header_rows or (bold_first_col and j == 0)) else ST["cell"]) for j, c in enumerate(r)])
     t = Table(data, colWidths=widths, repeatRows=header_rows)
     style = [
         ("LINEABOVE", (0, 0), (-1, 0), 0.9, INK),
@@ -99,20 +105,18 @@ def table(rows, widths, header_rows=1, align_right_from=1, zebra=True, bold_firs
         ("TOPPADDING", (0, 0), (-1, -1), 2.2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2.2),
         ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
     ]
-    if zebra:
-        for i in range(header_rows, len(rows)):
-            if (i - header_rows) % 2 == 1:
-                style.append(("BACKGROUND", (0, i), (-1, i), ZEBRA))
+    for i in range(header_rows, len(rows)):
+        if (i - header_rows) % 2 == 1:
+            style.append(("BACKGROUND", (0, i), (-1, i), ZEBRA))
     t.setStyle(TableStyle(style))
     return t
 
 
-# ---------------------------------------------------------------- document
 class Doc(BaseDocTemplate):
     def __init__(self, path, **kw):
         super().__init__(str(path), pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm, topMargin=18 * mm,
-                         bottomMargin=18 * mm, title="Benchmark LLM in modalità abbonamento",
-                         author="benchmarker", **kw)
+                         bottomMargin=18 * mm, title=TITLE,
+                         author=", ".join(AUTHORS), **kw)
         pw, ph = A4
         lw, lh = landscape(A4)
         self.addPageTemplates([
@@ -133,313 +137,251 @@ class Doc(BaseDocTemplate):
 
 
 def _meta(backend):
-    p = RESULTS_DIR / backend / "meta.json"
+    p = cfg.RESULTS_DIR / backend / "meta.json"
     return json.loads(p.read_text()) if p.exists() else None
 
 
 def build_paper(out: str | None = None) -> Path:
     data = collect()
-    PAPER_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = Path(out) if out else PAPER_DIR / "benchmark_paper.pdf"
+    cfg.PAPER_DIR.mkdir(parents=True, exist_ok=True)
+    out_path = Path(out) if out else cfg.PAPER_DIR / "benchmark_paper.pdf"
     if not data["lock"] or not data["models"]:
-        raise SystemExit("Nessun risultato da riportare: esegui prima `bench.py run`.")
+        raise SystemExit("No results to report: run `bench.py run` first.")
     models = data["models"]
     summ = {(m["backend"], m["key"]): model_summary(data, m) for m in models}
-    configured = all_models()
-    pending = [m for (b, k), m in configured.items() if not any(x["backend"] == b and x["key"] == k for x in models)]
-    lock = data["lock"]
-    benches = list(lock["benchmarks"])
-
+    pending = [] if is_legacy_suite(data["lock"]) else \
+        [m for (b, k), m in all_models().items() if not any(x["backend"] == b and x["key"] == k for x in models)]
     with tempfile.TemporaryDirectory(prefix="bench_fig_") as figdir:
-        figs = {
-            "acc": os.path.join(figdir, "acc.png"), "cost": os.path.join(figdir, "cost.png"),
-            "tok": os.path.join(figdir, "tok.png"), "quota": os.path.join(figdir, "quota.png"),
-        }
+        figs = {n: os.path.join(figdir, f"{n}.png") for n in ("acc", "value", "tok", "quota", "clusters")}
         charts.fig_accuracy(data, models, figs["acc"])
-        charts.fig_cost_accuracy(data, models, summ, figs["cost"])
+        charts.fig_value(data, models, summ, figs["value"])
         charts.fig_tokens(data, models, summ, figs["tok"])
         charts.fig_quota(data, models, summ, figs["quota"])
-        story = _story(data, models, summ, pending, lock, benches, figs)
-        Doc(out_path).build(story)
+        data["clusters"] = cluster(models, summ)
+        charts.fig_clusters(data["clusters"], summ, figs["clusters"])
+        Doc(out_path).build(_story(data, models, summ, pending, figs))
     return out_path
+
+
+MAX_FIG_H = 190 * mm   # every figure, with its caption, fits on one portrait page
 
 
 def _img(path, width):
     from reportlab.lib.utils import ImageReader
 
     iw, ih = ImageReader(path).getSize()
-    return Image(path, width=width, height=width * ih / iw)
+    h = width * ih / iw
+    if h > MAX_FIG_H:
+        width, h = width * MAX_FIG_H / h, MAX_FIG_H
+    return Image(path, width=width, height=h)
 
 
-def _story(data, models, summ, pending, lock, benches, figs):
+def _fig(path, width, caption):
+    return KeepTogether([_img(path, width), P(caption, "cap")])
+
+
+def _q(s, w):
+    return quota_text(s[f"q_{w}"], s[f"q_{w}_method"], s[f"q_{w}_bound"])
+
+
+def _story(data, models, summ, pending, figs):
     k = lambda m: (m["backend"], m["key"])
-    today = dt.date.today().isoformat()
-    metas = {b: _meta(b) for b in ("agy", "claude", "codex")}
-    cli_names = {"agy": "Antigravity <i>agy</i>", "claude": "Claude Code", "codex": "OpenAI <i>Codex</i>"}
-    backends_present = sorted({m["backend"] for m in models})
+    lock = data["lock"]
+    legacy = is_legacy_suite(lock)
+    efforts = sorted({m.get("effort") for m in models if m.get("effort")})
+    effort_txt = " / ".join(efforts) or "default"
+    benches = list(lock["benchmarks"])
+    settings = {b: backend_settings(b) for b in ("agy", "claude", "codex")}
+    metas = {b: _meta(b) for b in settings}
+    present = [b for b in ("agy", "claude", "codex") if any(m["backend"] == b for m in models)]
     first = min((c["first"] for c in data["cells"].values() if c["first"]), default="")[:10]
     last = max((c["last"] for c in data["cells"].values() if c["last"]), default="")[:10]
     n_items = sum(v["n"] for v in lock["benchmarks"].values())
     pw = A4[0] - 40 * mm
     lw = landscape(A4)[0] - 28 * mm
-
-    ranked = sorted([m for m in models if summ[k(m)]["acc_macro"] is not None],
-                    key=lambda m: -summ[k(m)]["acc_macro"])
-    best = ranked[0] if ranked else None
+    ranked = sorted([m for m in models if summ[k(m)]["acc_macro"] is not None], key=lambda m: -summ[k(m)]["acc_macro"])
     cheap = sorted([m for m in models if summ[k(m)]["cost_per_correct"]], key=lambda m: summ[k(m)]["cost_per_correct"])
+    roomy = sorted([m for m in models if summ[k(m)]["cap_weekly"]], key=lambda m: -summ[k(m)]["cap_weekly"])
 
-    S = []
-    S += [P("Benchmark deterministico di modelli linguistici in modalità abbonamento", "title"),
-          P("Accuratezza su coding, matematica, conoscenza e instruction following, con consumo di token, "
-            "costo API equivalente e quota delle finestre di 5 ore e settimanale", "sub"),
-          P(f"Generato il {today} · esecuzioni dal {first} al {last} · backend: {', '.join(backends_present)}", "sub")]
+    S = [P(TITLE, "title"), P(SUBTITLE, "sub"), P("<b>" + " · ".join(AUTHORS) + "</b>", "sub"),
+         P(f"Runs from {first} to {last} · generated {dt.date.today().isoformat()}", "sub")]
 
-    # Abstract
     abs_txt = (
-        f"Valutiamo {len(models)} modelli attraverso le CLI in abbonamento "
-        f"({', '.join(cli_names[b] for b in backends_present)}) "
-        f"su {len(benches)} benchmark pubblici ({n_items} item per modello, preset <i>{lock['preset']}</i>), "
-        "tutti verificabili in modo deterministico: test unitari eseguiti, confronto esatto o simbolico delle "
-        "risposte, verificatori programmatici. Nessun punteggio dipende da un LLM-as-a-Judge. Per ogni richiesta "
-        "registriamo i token di input (con la parte servita da cache), di output e di reasoning, stimiamo il costo "
-        "che lo stesso traffico avrebbe via API e misuriamo la frazione consumata della quota di 5 ore e settimanale "
-        "dell'abbonamento, leggendola dalla CLI prima e dopo ogni blocco di richieste.")
-    if best:
-        sb = summ[k(best)]
-        abs_txt += (f" Il modello con l'accuratezza media più alta è <b>{best['label']}</b> ({pct(sb['acc_macro'])}); ")
-        if cheap:
-            sc = summ[k(cheap[0])]
-            abs_txt += f"il costo API più basso per risposta corretta è di <b>{cheap[0]['label']}</b> ({usd(sc['cost_per_correct'])})."
-    S += [P("<b>Sommario.</b> " + abs_txt, "abs")]
+        "A student choosing a $20 subscription can find endless comparisons of model quality, but quality is only "
+        "half of the answer: a very strong model that can be used for five prompts a week is worth less than a weaker "
+        "one that can be used all day. We compare the flagship and the fast models of the $20 plans of OpenAI, "
+        f"Anthropic and Google through their own CLIs, on {len(benches)} hard benchmarks scored without any LLM judge "
+        f"({n_items} tasks per model), all at <i>{effort_txt}</i> reasoning effort. For every answer we measure the cost it "
+        "would have through the API, the input, output and reasoning tokens, the response time and, above all, the "
+        "share of the 5-hour and weekly limits it consumes, from which we derive how many tasks each plan really allows.")
+    if ranked:
+        abs_txt += f" The most accurate model is <b>{ranked[0]['label']}</b> ({pct(summ[k(ranked[0])]['acc_macro'])})"
+        if roomy:
+            abs_txt += (f"; the one allowing the most tasks per week is <b>{roomy[0]['label']}</b> "
+                        f"(about {num(summ[k(roomy[0])]['cap_weekly'], 0)})")
+        abs_txt += "."
+    S.append(P("<b>Abstract.</b> " + abs_txt, "abs"))
     if pending:
-        S += [P("<b>Nota.</b> Modelli configurati ma non ancora eseguiti: " + ", ".join(m["label"] for m in pending)
-                + ". Per aggiungerli basta eseguire <font face='Mono'>uv run bench.py run --backend "
-                + "/".join(sorted({m['backend'] for m in pending})) + "</font> su una macchina che ha accesso a quella "
-                "CLI: le tabelle e i grafici di questo documento vengono rigenerati includendo anche i nuovi risultati.", "abs")]
+        S.append(P("<b>Note.</b> Not yet run: " + ", ".join(m["label"] for m in pending) + ". Running "
+                   "<font face='Mono'>uv run bench.py run --backend " + "|".join(sorted({m['backend'] for m in pending}))
+                   + "</font> on a machine with that subscription adds them; every table and figure is rebuilt.", "abs"))
 
-    # 1. Introduzione
-    S += [P("1. Introduzione", "h1"),
-          P("Le classifiche pubbliche misurano i modelli via API, con i prompt e le impostazioni scelti da chi le "
-            "compila. Chi usa i modelli tramite un abbonamento si pone però domande diverse: quanto rende ciascun "
-            "modello sulle stesse attività, quanti token consuma davvero passando per l'agente della CLI, quanto "
-            "costerebbe lo stesso lavoro via API e, soprattutto, quanta parte della quota a disposizione si esaurisce. "
-            "Questo documento risponde a tutte e quattro le domande con un'unica procedura riproducibile. Le sezioni "
-            "2 e 3 descrivono setup e metriche; i risultati sono nella sezione 5, dopo una discussione dei limiti.")]
+    # 1
+    S += [P("1. Introduction", "h1"),
+          P("Each provider sells a $20/month plan (ChatGPT Plus, Claude Pro, Google AI Pro) that gives access to both a "
+            "flagship model and cheaper, faster ones, each with a 5-hour and a weekly usage limit. Which plan gets the "
+            "most done depends on three things: how often a model answers correctly, how much of the limit each answer "
+            "consumes, and how long it takes. We measure all three on the same tasks, at the same reasoning effort "
+            f"(<i>{effort_txt}</i>); how the picture changes with the effort level is left to future work.")]
 
-    # 2. Setup
-    S += [P("2. Setup sperimentale", "h1"), P("2.1 Modelli e interfacce", "h2"),
-          P("Ogni modello viene invocato in modalità non interattiva attraverso la CLI del proprio abbonamento, con "
-            "lo stesso livello di ragionamento (<i>effort</i>) per tutti. Ogni richiesta parte in una directory "
-            "temporanea vuota: un'unica domanda, nessuno storico di conversazione, nessun file del progetto visibile.")]
-    S += [P("<b>Antigravity (agy).</b> <font face='Mono'>agy -p &lt;prompt&gt; --model &lt;id&gt; --output-format json "
-            "--sandbox --disable-slash-commands [--json-schema]</font>. Il JSON restituito contiene la risposta, l'output "
-            "strutturato e il campo <i>usage</i> (input, output, thinking, cache read).", "bullet", ),
-          P("<b>Claude Code.</b> <font face='Mono'>claude -p &lt;prompt&gt; --model &lt;id&gt; --effort &lt;effort&gt; "
-            "--output-format stream-json --verbose --tools \"\" --strict-mcp-config --setting-sources \"\" "
-            "--disable-slash-commands --no-session-persistence [--json-schema]</font>. Nessuno strumento, nessun server "
-            "MCP, nessuna impostazione o CLAUDE.md dell'utente: il modello riceve solo il prompt di sistema minimo di "
-            "Claude Code. L'evento finale <i>result</i> contiene i token per modello (input, lettura e scrittura della "
-            "cache, output, thinking), l'evento <i>rate_limit_event</i> l'utilizzo delle finestre di 5 ore e di 7 giorni.",
-            "bullet"),
-          P("<b>Codex.</b> <font face='Mono'>codex exec --json --sandbox read-only --skip-git-repo-check -m &lt;id&gt; "
-            "-c model_reasoning_effort=&lt;effort&gt; [--output-schema]</font>. Token e rate limit vengono letti "
-            "dagli eventi <i>token_count</i> del file di sessione che Codex scrive in "
-            "<font face='Mono'>~/.codex/sessions</font>.", "bullet")]
-    rows = [["Modello", "Backend", "ID nella CLI", "Effort", "Prezzo API $/M token<br/>input · cache · output",
-             "Fonte prezzo", "Stato"]]
-    for (b, key), m in all_models().items():
+    # 2
+    S += [P("2. Setup", "h1"), P("2.1 Plans and models", "h2"),
+          P("Every model is called non-interactively through its plan's CLI, one question per request, in an empty "
+            "temporary directory. Claude Code runs with every tool disabled; the agy and Codex agents keep their tools, "
+            "but the prompt forbids them and their sandbox restricts them.")]
+    rows = [["Plan", "CLI", "Model", "Model id", "Effort", "API price $/M tokens<br/>in · cache · out", "Status"]]
+    table_models = {(m["backend"], m["key"]): m for m in models} if legacy else \
+        {bk: next((x for x in models if (x["backend"], x["key"]) == bk), m) for bk, m in all_models().items()}
+    for (b, key), m in table_models.items():
         pr = price_for(m.get("pricing", ""), last or None)
         done = any(x["backend"] == b and x["key"] == key for x in models)
-        rows.append([m["label"], b, f"<font face='Mono'>{m['cli_model']}</font>", m.get("effort", "–"),
-                     f"{num(pr['input'], 2)} · {num(pr.get('cached_input', pr['input']), 3)} · {num(pr['output'], 2)}" if pr else "–",
-                     ("ufficiale" if pr and pr.get("confidence") == "official" else "fonti terze") if pr else "–",
-                     "eseguito" if done else "<i>in attesa</i>"])
-    S += [table(rows, [30 * mm, 14 * mm, 37 * mm, 12 * mm, 34 * mm, 21 * mm, 17 * mm]),
-          P("Tabella 1. Modelli valutati. I prezzi servono solo a stimare il costo equivalente via API: "
-            "l'abbonamento non li addebita. Se un prezzo cambia nel periodo di esecuzione, ogni richiesta usa quello "
-            "valido nel giorno in cui è stata eseguita.", "cap")]
-    vers = [f"{b}: {metas[b]['runs'][-1]['cli_version']}" for b in backends_present if metas.get(b)]
-    if vers:
-        S += [P("Versioni delle CLI usate nell'ultima esecuzione: " + "; ".join(vers) + ".")]
+        rows.append([settings[b].get("plan", "–"), b, m["label"], f"<font face='Mono'>{m['cli_model']}</font>",
+                     m.get("effort", "–"),
+                     (f"{num(pr['input'], 2)} · {num(pr.get('cached_input', pr['input']), 3)} · {num(pr['output'], 2)}"
+                      + ("" if pr.get("confidence") == "official" else "†")) if pr else "–",
+                     "run" if done else "<i>pending</i>"])
+    S += [table(rows, [33 * mm, 11 * mm, 26 * mm, 41 * mm, 13 * mm, 32 * mm, 14 * mm]),
+          P("Table 1. Plans and models. API prices only serve to express each answer's cost in dollars; "
+            "† = third-party source, to be checked against the provider's pricing page.", "cap")]
 
-    S += [P("2.2 Benchmark", "h2"),
-          P("Abbiamo scelto benchmark diffusi in letteratura i cui punteggi si calcolano senza alcun giudizio "
-            "soggettivo. I dataset vengono scaricati una sola volta da Hugging Face, mescolati con un seme fisso e "
-            "congelati in <font face='Mono'>data/frozen</font>. Il preset prende i primi N item di ogni pool, e il file "
-            "<font face='Mono'>data/suite.lock.json</font> fissa gli identificativi esatti: chi estende i risultati "
-            "su un altro computer valuta quindi gli stessi problemi.")]
-    rows = [["Benchmark", "Area", "Item", "Sorgente", "Metrica", "Verifica"]]
+    S += [P("2.2 Benchmarks", "h2"),
+          P(("This run used the first version of the suite: widely used benchmarks whose answers can be checked by code. "
+             "Several of them proved close to saturation, which is why later runs use harder ones."
+             if legacy else
+             "Classic benchmarks (HumanEval, GSM8K, MATH, AIME 2024) are saturated, so we use recent or deliberately hard "
+             "ones whose answers can be checked by code.") + " Items are frozen with a fixed seed and pinned in "
+            "<font face='Mono'>data/suite.lock.json</font>, so results produced on different machines cover the same tasks.")]
+    rows = [["Benchmark", "Area", "Tasks", "Scoring"]]
     for b in benches:
-        sp = BENCHMARKS[b]
-        rows.append([sp["label"], sp["area"], str(lock["benchmarks"][b]["n"]),
-                     f"<font face='Mono'>{sp['hf'][0]}</font>", sp["metric"], sp["verification"]])
-    S += [table(rows, [24 * mm, 23 * mm, 10 * mm, 37 * mm, 37 * mm, 39 * mm]),
-          P("Tabella 2. Benchmark e metodo di verifica. AIME 2026 (febbraio 2026) e il sottoinsieme di livello 5 di "
-            "MATH-500 servono a distinguere modelli che su GSM8K sarebbero tutti vicini al 100%. "
-            f"Item esclusi perché la loro soluzione di riferimento non supera i test ufficiali: "
-            f"{', '.join(EXCLUDED)}.", "cap")]
+        sp = bench_info(b)
+        rows.append([sp["label"], sp["area"], str(lock["benchmarks"][b]["n"]), sp["verification"]])
+    S += [table(rows, [42 * mm, 36 * mm, 13 * mm, 79 * mm]),
+          P(("Table 2. Benchmarks (first suite version). Generated code ran in a separate <font face='Mono'>python -I</font> "
+             "process with a 60 s limit per program. " if legacy else
+             "Table 2. Benchmarks. LiveCodeBench problems date from January–April 2025 (hard only), HMMT from February "
+             "2026. Code runs in an isolated process (on macOS also sandboxed: no network, no writes outside a temporary "
+             "directory), 10 s per hidden test. ") + "All graders are validated by <font face='Mono'>bench.py selftest</font>.",
+            "cap")]
 
-    S += [P("2.3 Protocollo", "h2"),
-          P("Il prompt è identico per tutti i modelli. Chiede di rispondere senza usare strumenti (niente esecuzione di "
-            "codice, file o ricerche) e, dove serve, impone uno schema JSON di output: il campo <i>answer</i> per "
-            "matematica e scelta multipla, il campo <i>code</i> per il coding. Lo schema elimina gli errori di "
-            "estrazione della risposta senza aiutare il modello. In IFEval la risposta è testo libero, perché è proprio "
-            "il formato a essere valutato. Il codice generato viene eseguito in un processo Python isolato "
-            "(<font face='Mono'>python -I</font>, directory temporanea, ambiente ridotto, timeout di 60 s) con le "
-            "suite di test estese di EvalPlus. Le risposte matematiche sono confrontate come interi (AIME) o per "
-            "equivalenza simbolica con <i>math-verify</i> (MATH). IFEval usa i verificatori ufficiali di Google "
-            "Research inclusi nel progetto. Prima di ogni campagna, <font face='Mono'>bench.py selftest</font> "
-            "controlla che tutte le soluzioni di riferimento ottengano il punteggio pieno.")]
-    S += [P("Le richieste di un modello vengono eseguite in parallelo (3 per volta), un modello alla volta. Una "
-            "richiesta fallita (errore della CLI o timeout) viene ripetuta fino a due volte; se fallisce sempre, conta "
-            "come risposta errata. Tutti i tentativi, ripetizioni comprese, entrano nel conteggio di token, costi e "
-            "quota, perché li consumano davvero. Ogni risposta viene salvata appena arriva, quindi un'esecuzione "
-            "interrotta riprende esattamente da dove si era fermata.")]
-
-    # 3. Metriche
-    S += [P("3. Metriche", "h1"), P("3.1 Accuratezza e statistiche", "h2"),
-          P("Per ogni coppia modello-benchmark riportiamo l'accuratezza pass@1 (un solo tentativo, nessun campionamento "
-            "multiplo) con un intervallo di confidenza al 95% di Wilson. Con campioni piccoli l'intervallo è ampio: "
-            "due modelli i cui intervalli si sovrappongono molto non vanno considerati diversi. L'accuratezza "
-            "complessiva è la media non pesata dei benchmark (<i>macro</i>), così ogni area pesa allo stesso modo. "
-            "Riportiamo anche la latenza (mediana e 90° percentile, misurata lato client e comprensiva "
-            "dell'avvio della CLI), la velocità di generazione (token di output al secondo, mediana) e il numero "
-            "di errori.")]
-    S += [P("3.2 Token", "h2"),
-          P("I token sono quelli dichiarati dalla CLI per l'intera richiesta, quindi includono il prompt di sistema e "
-            "le definizioni degli strumenti dell'agente: è ciò che l'abbonamento conta davvero, non solo il testo del "
-            "benchmark. <b>Input</b> comprende i token letti dalla cache, riportati anche a parte. <b>Output</b> "
-            "comprende i token di <b>reasoning</b>, che entrambe le CLI includono nel conteggio di output e che i "
-            "provider fatturano come output. Il reasoning viene quindi mostrato come sottoinsieme e mai sommato due "
-            "volte. Se una CLI non espone i token di thinking (Claude Code li riporta solo in alcuni casi), il "
-            "reasoning risulta 0 ma è comunque compreso nell'output. Claude Code scrive in cache il proprio prompt di "
-            "sistema (cache con durata di 1 ora): questi token di <i>scrittura</i> sono parte dell'input e hanno un "
-            "prezzo maggiorato.")]
-    S += [P("3.3 Costo API equivalente", "h2"),
-          P("Per ogni richiesta: <i>costo</i> = (input − cache − scrittura) × p<sub>in</sub> + cache × "
-            "p<sub>cache</sub> + scrittura × p<sub>scrittura</sub> + output × p<sub>out</sub>, con i prezzi della Tabella 1 per milione di token (tariffa Standard, contesto "
-            "breve, senza sconti batch). È il costo che lo stesso traffico avrebbe sostenuto via API. Riportiamo il "
-            "totale, la media per task e il <b>costo per risposta corretta</b> (totale diviso per il numero di "
-            "risposte corrette), che tiene conto insieme del prezzo e dell'accuratezza.")]
-    S += [P("3.4 Quota dell'abbonamento (5 ore e settimanale)", "h2"),
-          P("Prima e dopo ogni blocco di richieste dello stesso modello sullo stesso benchmark leggiamo lo stato della "
-            "quota. Con agy usiamo il comando <font face='Mono'>/quota</font>, che restituisce per ogni gruppo di "
-            "modelli la frazione rimanente (con otto cifre decimali) e l'orario di reset. Con Claude Code usiamo "
-            "l'utilizzo delle finestre <i>five_hour</i> e <i>seven_day</i> riportato a ogni richiesta; se il piano ha "
-            "un limite settimanale specifico per Opus o Sonnet, si usa quello. Con Codex usiamo i "
-            "<i>rate_limits</i> allegati a ogni evento token_count (finestra primaria di 300 minuti e secondaria "
-            "di 10.080 minuti, cioè 7 giorni). La quota consumata è la differenza tra le due letture. La quota è "
-            "condivisa all'interno di un gruppo: in agy Gemini 4 Neon e Hydrogen condividono un budget, mentre Gemini 4 "
-            "Argon ha un limite settimanale separato; in Claude Code e in Codex tutti i modelli condividono il budget "
-            "dell'account. Le percentuali di gruppi e CLI diversi si riferiscono quindi a budget diversi. Durante una "
-            "misura l'account non va usato per altro: per esempio, nessuna sessione di Claude Code aperta mentre "
-            "girano i modelli Claude.")]
-    S += [P("Se una finestra si azzera durante un blocco, la differenza non è più valida. In quel caso la "
-            "percentuale viene stimata moltiplicando il costo API del blocco per il rapporto %-per-dollaro misurato "
-            "sugli altri blocchi dello stesso modello: secondo i provider, la quota si consuma in proporzione al costo "
-            "dei token. I valori stimati sono segnati con un asterisco nelle tabelle e tratteggiati nei grafici. "
-            "Claude Code e Codex espongono la percentuale usata con risoluzione dell'1%: un blocco breve può risultare "
-            "0% o 1%, quindi per questi modelli conviene leggere i totali e non i singoli benchmark. Al primo blocco di "
-            "ogni modello viene inviata una richiesta minima di riscaldamento per ottenere la lettura iniziale. Dalla quota ricaviamo anche la "
-            "<b>capacità</b>, cioè quanti task dello stesso tipo entrerebbero in una finestra di 5 ore o in una "
-            "settimana piena.")]
-
-    # 4. Limiti
-    S += [P("4. Limiti e minacce alla validità", "h1")]
+    # 3
+    S += [P("3. Metrics", "h1")]
     for t in [
-        "<b>Campione.</b> Il preset usato contiene pochi item per benchmark per non esaurire la quota: le differenze "
-        "piccole non sono statisticamente significative (si vedano gli intervalli di confidenza).",
-        "<b>Agente, non API pura.</b> Le CLI aggiungono un prompt di sistema e strumenti. Il prompt chiede di non "
-        "usarli, ma un modello potrebbe comunque provarci (la sandbox lo limita); il numero di turni è registrato "
-        "nei risultati grezzi. L'overhead di input è parte integrante del costo reale.",
-        "<b>Contaminazione.</b> HumanEval, MBPP, MATH e MMLU-Pro sono pubblici da tempo e possono comparire nei dati "
-        "di addestramento. AIME 2026 è più recente, ma non è garantito che sia escluso.",
-        "<b>Prezzi.</b> Alcuni prezzi provengono da fonti secondarie (Tabella 1) e vanno verificati sulle pagine "
-        "ufficiali; si aggiornano modificando <font face='Mono'>config/pricing.toml</font> e rigenerando il paper, "
-        "senza ripetere le esecuzioni.",
-        "<b>Quota.</b> Le percentuali dipendono dal piano dell'account e dal suo stato al momento della misura; "
-        "risultati ottenuti su account e date diversi (per esempio agy e Codex eseguiti da persone diverse) non "
-        "sono confrontabili in senso assoluto tra provider, ma sono validi all'interno dello stesso account.",
+        "<b>Accuracy</b>: pass@1 with a 95% Wilson interval; the overall score is the unweighted mean over benchmarks.",
+        "<b>Cost per answer</b>: what the request would cost through the API (input, cache reads and writes, output; "
+        "reasoning is billed as output). Also reported per correct answer.",
+        "<b>Tokens</b>: input (with the cached part), output and reasoning as reported by the CLI, agent system "
+        "prompt included. Reasoning is a subset of output, never added twice.",
+        "<b>Time per answer</b>: wall-clock latency of the CLI call (median and 90th percentile).",
+        "<b>Quota</b>: change of the 5-hour and weekly counters read from the CLI before and after each block of "
+        "requests, and the resulting <b>capacity</b> (tasks per full 5-hour window or week).",
+        "<b>Clusters</b>: models are grouped by consumption (cost and output tokens per answer) and speed (median "
+        "time) with k-means on standardised log values; the number of groups is the one with the best silhouette.",
     ]:
-        S.append(P(t, "bullet", ) if False else Paragraph(t, ST["bullet"], bulletText="•"))
+        S.append(B(t))
+    S.append(P("Claude Code and Codex report quota in whole percentage points. A model's total is exact to ±1 point; it "
+               "is split across benchmarks by API cost. Totals spanning fewer than "
+               f"{MIN_STEPS} points are marked ≈; a window that barely moved is derived from the other one through the "
+               "account's weekly/5-hour ratio (marked ~); &lt;1% means the counter never moved. Quota is not "
+               "proportional to list prices, so it is never estimated from them. Gemini 4 Argon has only a weekly limit "
+               "(n/a for 5 hours). The account must not be used for anything else during a run."))
 
-    # 5. Risultati
-    S += [NextPageTemplate("landscape"), PageBreak(), P("5. Risultati", "h1"),
-          P("La Tabella 3 riassume, per ogni modello, tutte le metriche richieste: accuratezza, token di input, output e "
-            "reasoning, costo API equivalente e percentuale di quota consumata nella finestra di 5 ore e in quella "
-            "settimanale. I totali si riferiscono all'intera suite. I valori segnati con * sono stimati (sezione 3.4).")]
-    hdr = ["Modello", "CLI", "Acc.<br/>media", "Task", "Token<br/>input", "di cui<br/>cache", "Token<br/>output",
-           "di cui<br/>reason.", "Costo API<br/>totale", "Costo<br/>per task", "Costo per<br/>risp. corretta",
-           "Quota<br/>5h", "Quota<br/>sett.", "Task per<br/>fin. 5h", "Task per<br/>sett.",
-           "Latenza<br/>mediana", "Output<br/>tok/s"]
+    # 4 Results
+    S += [NextPageTemplate("landscape"), PageBreak(), P("4. Results", "h1"),
+          P("Table 3 is the main result: for each model, quality, cost, tokens, time and quota over the whole suite.")]
+    hdr = ["Model", "Plan", "Mean<br/>acc.", "Tasks", "Cost per<br/>answer", "Cost per<br/>correct", "Input<br/>tok/answer",
+           "Output<br/>tok/answer", "of which<br/>reasoning", "Median<br/>time", "p90<br/>time", "5-hour<br/>quota",
+           "Weekly<br/>quota", "Tasks per<br/>5h window", "Tasks<br/>per week"]
     rows = [hdr]
     for m in models:
         s = summ[k(m)]
         t = s["tokens"]
-        star = lambda w: "*" if s[f"q_{w}_est"] else ""
+        n = max(1, s["attempts"])
+        p90 = [c["lat_p90"] for (b, kk, _), c in data["cells"].items() if (b, kk) == k(m) and c["lat_p90"]]
         rows.append([
-            m["label"], m["backend"], pct(s["acc_macro"]), f"{s['n_done']}/{s['n_target']}",
-            num(t.get("input", 0), 0), pct(t.get("cached_input", 0) / t["input"]) if t.get("input") else "–",
-            num(t.get("output", 0), 0), num(t.get("reasoning", 0), 0), usd(s["cost"]),
-            usd(s["cost"] / s["attempts"] if s["cost"] is not None and s["attempts"] else None),
-            usd(s["cost_per_correct"]),
-            (pct(s["q_5h"], 2) + star("5h")) if s["q_5h"] is not None else "n/d",
-            (pct(s["q_weekly"], 2) + star("weekly")) if s["q_weekly"] is not None else "n/d",
+            m["label"], settings[m["backend"]].get("plan", m["backend"]).split(" (")[0], pct(s["acc_macro"]),
+            f"{s['n_done']}/{s['n_target']}", usd(s["cost"] / n if s["cost"] is not None else None),
+            usd(s["cost_per_correct"]), ktok(t.get("input", 0) / n), ktok(t.get("output", 0) / n),
+            ktok(t.get("reasoning", 0) / n), (num(s["lat_p50"], 1) + " s") if s["lat_p50"] else "–",
+            (num(max(p90), 0) + " s") if p90 else "–", _q(s, "5h"), _q(s, "weekly"),
             num(s["cap_5h"], 0) if s["cap_5h"] else "–", num(s["cap_weekly"], 0) if s["cap_weekly"] else "–",
-            (num(s["lat_p50"], 1) + " s") if s["lat_p50"] else "–", num(s["tps"], 0) if s["tps"] else "–",
         ])
-    w = [32, 11, 13, 13, 19, 12, 18, 17, 17, 15, 18, 14, 14, 15, 15, 15, 13]
+    w = [32, 26, 13, 13, 16, 16, 17, 17, 17, 15, 14, 15, 15, 17, 15]
     scale = lw / (sum(w) * mm)
     S += [table(rows, [x * mm * scale for x in w], bold_first_col=True),
-          P("Tabella 3. Riepilogo per modello sull'intera suite. Acc. media = media non pesata dei benchmark. "
-            "La percentuale di cache è calcolata sui token di input. Capacità = task eseguiti ÷ frazione di quota "
-            "consumata. Quota del gruppo del modello (sezione 3.4). n/d = limite non previsto per quel modello "
-            "(per esempio Gemini 4 Argon ha solo un limite settimanale dedicato, senza finestra di 5 ore).", "cap")]
+          P("Table 3. Per-model summary. Token and cost figures are means per answer (retries included); quota is the "
+            "total for the suite within the model's plan; capacity = tasks ÷ quota share. ≈ coarse, ~ derived, "
+            "&lt;1% below resolution, n/a no such limit (section 3).", "cap")]
 
-    # accuracy matrix
-    rows = [["Modello"] + [BENCHMARKS[b]["label"] for b in benches] + ["Media"]]
+    rows = [["Model"] + [bench_info(b)["label"] for b in benches] + ["Mean"]]
     for m in models:
         r = [m["label"]]
         for b in benches:
             c = data["cells"].get((m["backend"], m["key"], b))
-            if not c or c["acc"] is None:
-                r.append("–")
-            else:
-                r.append(f"<b>{pct(c['acc'], 0)}</b> <font size=6 color='#52514e'>[{num(100 * c['ci'][0], 0)}–"
-                         f"{num(100 * c['ci'][1], 0)}] n={c['n_done']}</font>")
+            r.append("–" if not c or c["acc"] is None else
+                     f"<b>{pct(c['acc'], 0)}</b> <font size=6 color='#52514e'>[{100 * c['ci'][0]:.0f}–"
+                     f"{100 * c['ci'][1]:.0f}] n={c['n_done']}</font>")
         r.append(f"<b>{pct(summ[k(m)]['acc_macro'])}</b>")
         rows.append(r)
-    cw = (lw - 38 * mm - 20 * mm) / len(benches)
-    S += [KeepTogether([table(rows, [38 * mm] + [cw] * len(benches) + [20 * mm], bold_first_col=True),
-                        P("Tabella 4. Accuratezza pass@1 per benchmark, con intervallo di confidenza al 95% (Wilson) "
-                          "e numero di item valutati. Per IFEval è la <i>prompt-level strict accuracy</i>.", "cap")])]
-    ife = [m for m in models if data["cells"].get((m["backend"], m["key"], "ifeval"))]
-    if ife:
-        S += [P("IFEval, metriche secondarie: " + "; ".join(
-            f"{m['label']}: loose {pct(data['cells'][(m['backend'], m['key'], 'ifeval')]['ifeval_loose'])}, "
-            f"instruction-level strict {pct(data['cells'][(m['backend'], m['key'], 'ifeval')]['ifeval_inst'])}"
-            for m in ife) + ".")]
+    cw = (lw - 38 * mm - 18 * mm) / len(benches)
+    S += [KeepTogether([table(rows, [38 * mm] + [cw] * len(benches) + [18 * mm], bold_first_col=True),
+                        P("Table 4. Accuracy per benchmark with 95% confidence interval (instruction following: prompt-level "
+                          "strict accuracy).",
+                          "cap")])]
 
     S += [NextPageTemplate("portrait"), PageBreak(),
-          P("5.1 Grafici", "h2"), _img(figs["acc"], pw),
-          P("Figura 1. Accuratezza per benchmark. Le barre sottili indicano l'intervallo di confidenza al 95%.", "cap"),
-          KeepTogether([_img(figs["cost"], pw * 0.92),
-                        P("Figura 2. Accuratezza media in funzione del costo API medio per task (asse logaritmico). "
-                          "I modelli in alto a sinistra offrono il compromesso migliore.", "cap")]),
-          KeepTogether([_img(figs["tok"], pw * 0.92),
-                        P("Figura 3. Composizione media dei token per richiesta. L'input comprende il prompt di sistema "
-                          "dell'agente; reasoning e output visibile insieme formano gli output token fatturati.", "cap")]),
-          KeepTogether([_img(figs["quota"], pw),
-                        P("Figura 4. Quota consumata ogni 10 task, nel gruppo di quota del modello. Le barre "
-                          "tratteggiate sono stime (sezione 3.4).", "cap")])]
+          _fig(figs["value"], pw, "Figure 1. The student's trade-off: mean accuracy against API cost per answer (left) "
+               "and against the number of tasks a full weekly limit allows (right). Top right is best in the right panel."),
+          _fig(figs["quota"], pw, "Figure 2. Quota consumed per 10 tasks in the model's plan (hatched: ≈ or ~ values)."),
+          _fig(figs["acc"], pw, "Figure 3. Accuracy per benchmark with 95% confidence intervals."),
+          _fig(figs["tok"], pw * 0.92, "Figure 4. Mean tokens per answer. Input includes the CLI's system prompt; "
+               "reasoning and visible output form the billed output.")]
 
-    # per-benchmark detail (landscape)
-    S += [NextPageTemplate("landscape"), PageBreak(), P("5.2 Dettaglio per benchmark", "h2"),
-          P("La Tabella 5 riporta le stesse metriche per ogni coppia benchmark-modello. Le medie di token e costo "
-            "sono per tentativo; i valori di quota sono quelli del singolo benchmark.")]
-    hdr = ["Benchmark", "Modello", "Acc.", "IC 95%", "n", "Err.", "Input<br/>medio", "Cache<br/>media", "Output<br/>medio",
-           "Reason.<br/>medio", "Costo<br/>totale", "Costo<br/>per task", "Quota<br/>5h", "Quota<br/>sett.",
-           "Latenza<br/>p50", "Latenza<br/>p90", "Output<br/>tok/s"]
+    # 4.1 clusters
+    cl = data["clusters"]
+    S += [PageBreak(), P("4.1 Consumption and speed clusters", "h2")]
+    if cl["k"] > 1:
+        S.append(P(f"k-means finds <b>{cl['k']} groups</b> (silhouette {cl['silhouette']:.2f}; above 0.5 the groups are "
+                   "well separated, below 0.25 they are weak). Each group is named after its centre relative to the median "
+                   "model; the tables compare models only with their peers."))
+    S.append(_fig(figs["clusters"], pw, "Figure 5. Consumption and speed clusters (shaded regions). Colour shows the plan; "
+                  "the grouping also uses output tokens, which this projection does not show."))
+    hdr = ["Model", "Plan", "Mean<br/>acc.", "Cost per<br/>answer", "Input<br/>tokens", "Output<br/>tokens",
+           "Reasoning<br/>tokens", "Median<br/>time", "Output<br/>tok/s", "5h quota<br/>/10 tasks", "Weekly<br/>/10 tasks"]
+    w = [27, 19, 11, 14, 12, 12, 18, 13, 12, 15, 15]
+    scale = pw / (sum(w) * mm)
+    for g in cl["groups"]:
+        c = g["center"]
+        rows = [hdr]
+        for m in sorted(g["members"], key=lambda m: -(summ[k(m)]["acc_macro"] or 0)):
+            s_ = summ[k(m)]
+            n = max(1, s_["attempts"])
+            t = s_["tokens"]
+            per10 = lambda wdw: ("–" if s_[f"q_{wdw}"] is None else
+                                 quota_text(s_[f"q_{wdw}"] / n * 10, s_[f"q_{wdw}_method"], None))
+            rows.append([m["label"], charts.plan_name(m["backend"]), pct(s_["acc_macro"]),
+                         usd(s_["cost"] / n if s_["cost"] is not None else None), ktok(t.get("input", 0) / n),
+                         ktok(t.get("output", 0) / n), ktok(t.get("reasoning", 0) / n),
+                         (num(s_["lat_p50"], 1) + " s") if s_["lat_p50"] else "–", num(s_["tps"], 0) if s_["tps"] else "–",
+                         per10("5h"), per10("weekly")])
+        cap = (f"<b>{g['name']}</b>" + (f" — centre: {usd(c['cost'])} and {ktok(c['tokens'])} output tokens per answer, "
+                                        f"{num(c['time'], 0)} s median time." if c else "."))
+        S.append(KeepTogether([Spacer(1, 6), P(cap, "body"), table(rows, [x * mm * scale for x in w], bold_first_col=True)]))
+    if cl["skipped"]:
+        S.append(P("Not clustered (missing cost or time): " + ", ".join(m["label"] for m in cl["skipped"]) + ".", "cap"))
+
+    S += [NextPageTemplate("landscape"), PageBreak(), P("4.2 Per-benchmark detail", "h2")]
+    hdr = ["Benchmark", "Model", "Acc.", "95% CI", "n", "Err.", "Input", "Output", "Reasoning", "Cost per<br/>answer",
+           "Median<br/>time", "p90<br/>time", "5-hour<br/>quota", "Weekly<br/>quota"]
     rows = [hdr]
     for b in benches:
         for m in models:
@@ -449,65 +391,58 @@ def _story(data, models, summ, pending, lock, benches, figs):
             n = max(1, c["attempts"])
             t = c["tokens"]
             q5, qw = c["quota"]["5h"], c["quota"]["weekly"]
-            rows.append([
-                BENCHMARKS[b]["label"], m["label"], pct(c["acc"]),
-                f"{num(100 * c['ci'][0], 0)}–{num(100 * c['ci'][1], 0)}%", str(c["n_done"]), str(c["errors"]),
-                ktok(t.get("input", 0) / n), ktok(t.get("cached_input", 0) / n), ktok(t.get("output", 0) / n),
-                ktok(t.get("reasoning", 0) / n), usd(c["cost"]), usd(c["cost"] / n if c["cost"] is not None else None),
-                (pct(q5["used"], 2) + ("*" if q5["estimated"] else "")) if q5["used"] is not None else "n/d",
-                (pct(qw["used"], 2) + ("*" if qw["estimated"] else "")) if qw["used"] is not None else "n/d",
-                (num(c["lat_p50"], 1) + " s") if c["lat_p50"] else "–",
-                (num(c["lat_p90"], 1) + " s") if c["lat_p90"] else "–", num(c["tps"], 0) if c["tps"] else "–",
-            ])
-    w = [27, 30, 13, 18, 8, 8, 14, 14, 14, 16, 15, 15, 14, 14, 15, 15, 13]
+            rows.append([bench_info(b)["label"], m["label"], pct(c["acc"]),
+                         f"{100 * c['ci'][0]:.0f}–{100 * c['ci'][1]:.0f}%", str(c["n_done"]), str(c["errors"]),
+                         ktok(t.get("input", 0) / n), ktok(t.get("output", 0) / n), ktok(t.get("reasoning", 0) / n),
+                         usd(c["cost"] / n if c["cost"] is not None else None),
+                         (num(c["lat_p50"], 1) + " s") if c["lat_p50"] else "–",
+                         (num(c["lat_p90"], 1) + " s") if c["lat_p90"] else "–",
+                         quota_text(q5["used"], q5["method"], q5["bound"]), quota_text(qw["used"], qw["method"], qw["bound"])])
+    w = [32, 30, 13, 17, 8, 8, 15, 15, 16, 17, 15, 15, 15, 15]
     scale = lw / (sum(w) * mm)
     S += [table(rows, [x * mm * scale for x in w]),
-          P("Tabella 5. Metriche per benchmark e modello. Err. = richieste fallite anche dopo i tentativi di ripetizione "
-            "(contano come errate). * = quota stimata. n/d = limite non previsto per quel modello.", "cap")]
+          P("Table 5. Metrics per benchmark (means per answer). Err. = requests that failed after retries, counted wrong.",
+            "cap")]
 
-    # 6. Conclusioni
-    S += [NextPageTemplate("portrait"), PageBreak(), P("6. Discussione e conclusioni", "h1")]
-    concl = []
-    for b in benches:
-        cands = [(m, data["cells"][(m["backend"], m["key"], b)]) for m in models
-                 if (m["backend"], m["key"], b) in data["cells"] and data["cells"][(m["backend"], m["key"], b)]["acc"] is not None]
-        if not cands:
-            continue
-        top = max(c["acc"] for _, c in cands)
-        leaders = [m["label"] for m, c in cands if c["acc"] == top]
-        concl.append(f"<b>{BENCHMARKS[b]['label']}</b>: miglior risultato {pct(top, 0)} ({', '.join(leaders)}).")
-    for t in concl:
-        S.append(Paragraph(t, ST["bullet"], bulletText="•"))
-    if cheap:
-        S.append(P("In rapporto qualità/prezzo, il costo API per risposta corretta va da "
-                   f"{usd(summ[k(cheap[0])]['cost_per_correct'])} ({cheap[0]['label']}) a "
-                   f"{usd(summ[k(cheap[-1])]['cost_per_correct'])} ({cheap[-1]['label']})."))
-    capm = [m for m in models if summ[k(m)]["cap_weekly"]]
-    if capm:
-        capm.sort(key=lambda m: -summ[k(m)]["cap_weekly"])
-        S.append(P("Rispetto alla quota, con un intero limite settimanale si eseguirebbero circa "
-                   + "; ".join(f"{num(summ[k(m)]['cap_weekly'], 0)} task con {m['label']}" for m in capm)
-                   + ". I gruppi di quota sono diversi, quindi il confronto vale per l'account misurato."))
-    S.append(P("Con il preset usato questi risultati sono indicativi. Per conclusioni più solide conviene ripetere la "
-               "campagna con un preset più ampio (per esempio <i>standard</i>), distribuendo l'esecuzione su più "
-               "finestre: il runner aspetta da solo il reset della quota e riprende."))
+    # 5 Discussion
+    S += [NextPageTemplate("portrait"), PageBreak(), P("5. Discussion", "h1")]
+    plans = {}
+    for m in models:
+        plans.setdefault(m["backend"], []).append(m)
+    for b, ms in plans.items():
+        best = max(ms, key=lambda m: summ[k(m)]["acc_macro"] or 0)
+        most = max(ms, key=lambda m: summ[k(m)]["cap_weekly"] or 0)
+        txt = (f"<b>{settings[b].get('plan', b)}</b>: most accurate {best['label']} ({pct(summ[k(best)]['acc_macro'])}, "
+               f"{usd(summ[k(best)]['cost_per_correct'])} per correct answer")
+        if summ[k(most)]["cap_weekly"]:
+            txt += f"); most tasks per week {most['label']} (about {num(summ[k(most)]['cap_weekly'], 0)})"
+        else:
+            txt += ")"
+        S.append(B(txt + "."))
+    for g in data["clusters"]["groups"]:
+        if len(g["members"]) > 1:
+            top = max(g["members"], key=lambda m: summ[k(m)]["acc_macro"] or 0)
+            S.append(B(f"Within <b>{g['name']}</b> the most accurate model is {top['label']} "
+                       f"({pct(summ[k(top)]['acc_macro'])})."))
+    S.append(P("Read together, Table 3 and Figure 1 answer the student's question: the best plan is the one whose "
+               "models stay accurate on the tasks that matter while leaving enough weekly room. The conclusions are "
+               "indicative: samples are small (see the intervals), quotas depend on each account's plan and state, and "
+               "plans run by different people are comparable only in relative terms."))
+    S += [P("Limitations and future work", "h2")]
+    for t in ["Small samples per benchmark to preserve the quota; a larger preset (e.g. <i>standard</i>) gives firmer numbers.",
+              "Public datasets may appear in training data" + ("." if legacy else
+                                                                 "; HMMT February 2026 is the most recent set."),
+              f"Only <i>{effort_txt}</i> effort was tested; sweeping low/high effort would show how each plan trades quality "
+              "for quota.",
+              "Some API prices come from third-party sources (†)."]:
+        S.append(B(t))
 
-    # Appendix
-    S += [P("Appendice A. Riproducibilità ed estensione", "h1"),
-          P("Il codice, i dati congelati e i risultati grezzi (un file JSONL per modello e benchmark, con la risposta "
-            "completa, i token e il punteggio di ogni item) stanno nella stessa cartella. Per riprodurre o estendere:")]
-    for c in ["uv run bench.py selftest", "uv run bench.py run --backend agy", "uv run bench.py run --backend claude",
-              "uv run bench.py run --backend codex",
-              "uv run bench.py status", "uv run bench.py paper"]:
+    S += [P("Appendix: reproducing and extending", "h1"),
+          P("Code, frozen data and raw results (full reply, tokens and score of every task) are in the repository:")]
+    for c in ["uv run bench.py selftest", "uv run bench.py run --backend agy|claude|codex", "uv run bench.py paper"]:
         S.append(P(c, "code"))
-    S.append(P("Il comando <font face='Mono'>run</font> usa sempre la suite fissata in "
-               "<font face='Mono'>data/suite.lock.json</font>, salta gli item già completati e, alla fine, rigenera "
-               "questo PDF con tutti i risultati presenti in <font face='Mono'>results/</font>, indipendentemente dal "
-               "computer che li ha prodotti. Per unire i risultati di due macchine basta copiare le rispettive "
-               "sottocartelle <font face='Mono'>results/&lt;backend&gt;/</font>. Impronte dei pool di dati (SHA-256, "
-               "16 caratteri): " + "; ".join(f"{BENCHMARKS[b]['label']} {lock['benchmarks'][b]['pool_sha256_16']}"
-                                             for b in benches) + "."))
-    pr = data["pricing"]
-    S.append(P(f"Prezzi verificati il {pr.get('checked_on', '?')}. Fonti: " + "; ".join(
-        f"{e['key']}: {e.get('source', '')}" for e in pr.get("price", [])) + "."))
+    vers = [f"{b} {metas[b]['runs'][-1]['cli_version']}" for b in present if metas.get(b)]
+    S.append(P(("CLI versions: " + "; ".join(vers) + ". " if vers else "") + "Pool fingerprints (SHA-256/16): "
+               + "; ".join(f"{bench_info(b)['label']} {lock['benchmarks'][b]['pool_sha256_16']}" for b in benches)
+               + f". Prices checked on {data['pricing'].get('checked_on', '?')}."))
     return S

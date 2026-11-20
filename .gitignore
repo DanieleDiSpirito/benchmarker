@@ -2,5 +2,6 @@
 __pycache__/
 *.pyc
 .DS_Store
-# scaricato automaticamente al primo uso (tokenizer NLTK per IFEval)
+# downloaded automatically on first use
 data/nltk/
+data/cache/

@@ -25,52 +25,43 @@ LETTERS = "ABCDEFGHIJ"
 
 def build(bench: str, item: dict) -> tuple[str, dict | None]:
     """Return (prompt, json_schema or None)."""
-    if bench == "humaneval_plus":
+    if bench == "livecodebench_hard":
+        if item["starter_code"]:
+            how = ("Complete the class below. Return in the `code` field the complete Python 3 code "
+                   "(imports + the full `class Solution`), keeping the given method signature.\n\n"
+                   f"```python\n{item['starter_code']}\n```\n")
+        else:
+            how = ("Write a complete Python 3 program that reads the input from standard input and writes the "
+                   "answer to standard output. Return the whole program in the `code` field.\n")
         return (
-            PREAMBLE
-            + "Complete the following Python function. Return in the `code` field the complete, self-contained "
-            "Python code: the needed imports and the full function definition with the same name and signature. "
-            "No markdown fences, no example usage, no tests.\n\n"
-            + item["prompt"],
+            PREAMBLE + "Solve the following competitive-programming problem. Efficiency matters: the hidden tests "
+            "include the largest inputs allowed by the constraints. No markdown fences, no explanations.\n\n"
+            f"### Problem: {item['title']}\n\n{item['content']}\n\n" + how,
             CODE_SCHEMA,
         )
-    if bench == "mbpp_plus":
+    if bench in ("hmmt_feb_2026", "beyond_aime"):
+        extra = ("The answer is an integer. " if bench == "beyond_aime" else
+                 "Write the answer in simplest exact form (LaTeX allowed, e.g. \\frac{3}{4}, \\sqrt{2}). ")
         return (
-            PREAMBLE
-            + "Write a Python function for the task below. Return in the `code` field the complete, self-contained "
-            "Python code (imports + function). No markdown fences, no example usage, no tests.\n\n"
-            f"Task: {item['prompt']}\n"
-            f"Your code must pass this test:\n{item['test_list'][0]}\n",
-            CODE_SCHEMA,
-        )
-    if bench in ("aime_2026", "math500_l5"):
-        extra = (
-            "The answer is an integer between 0 and 999. "
-            if bench == "aime_2026"
-            else "Write the answer in simplest exact form (LaTeX allowed, e.g. \\frac{3}{4}, \\sqrt{2}, intervals). "
-        )
-        return (
-            PREAMBLE
-            + "Solve the following math problem. "
-            + extra
-            + "Put only the final answer in the `answer` field, without words or units.\n\n"
-            + item["problem"],
+            PREAMBLE + "Solve the following math problem. " + extra
+            + "Put only the final answer in the `answer` field, without words or units.\n\n" + item["problem"],
             ANSWER_SCHEMA,
         )
-    if bench == "mmlu_pro":
+    if bench == "supergpqa_hard":
         opts = "\n".join(f"{LETTERS[i]}. {o}" for i, o in enumerate(item["options"]))
         return (
-            PREAMBLE
-            + "Answer the following multiple-choice question. Put only the letter of the correct option "
-            "in the `answer` field.\n\n"
-            f"Question: {item['question']}\n\nOptions:\n{opts}\n",
+            PREAMBLE + "Answer the following multiple-choice question. Put only the letter of the correct option "
+            f"in the `answer` field.\n\nQuestion: {item['question']}\n\nOptions:\n{opts}\n",
             ANSWER_SCHEMA,
         )
-    if bench == "ifeval":
-        # Free-form answer: the format itself is what gets evaluated, so no schema and no preamble
-        # beyond the tool restriction.
+    if bench == "bbeh_mini":
         return (
-            "Do not use any tools. Reply to the request below with the requested text only.\n\n" + item["prompt"],
-            None,
+            PREAMBLE + "Solve the following task. Put only the final answer in the `answer` field, in the exact "
+            "format the task asks for, without explanations.\n\n" + item["input"],
+            ANSWER_SCHEMA,
         )
+    if bench == "ifbench":
+        # Free-form answer: the format itself is what gets evaluated.
+        return ("Do not use any tools. Reply to the request below with the requested text only.\n\n" + item["prompt"],
+                None)
     raise KeyError(bench)

@@ -46,7 +46,7 @@ class Backend:
         b = os.environ.get(env_var) or self.settings.get("binary") or default
         path = shutil.which(b)
         if not path:
-            raise SystemExit(f"CLI '{b}' non trovata nel PATH (imposta {env_var})")
+            raise SystemExit(f"CLI '{b}' not found in PATH (set {env_var})")
         return path
 
     @staticmethod

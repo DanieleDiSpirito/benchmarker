@@ -17,6 +17,14 @@ SUITE_LOCK = DATA_DIR / "suite.lock.json"
 BACKENDS = ("agy", "claude", "codex")
 
 
+def use_suite_dir(path) -> None:
+    """Point analysis and paper at an archived suite: <path>/results, <path>/suite.lock.json,
+    and write the PDF into <path>. Used by `bench.py paper --suite archive/<name>`."""
+    global RESULTS_DIR, SUITE_LOCK, PAPER_DIR
+    root = Path(path).resolve()
+    RESULTS_DIR, SUITE_LOCK, PAPER_DIR = root / "results", root / "suite.lock.json", root
+
+
 def load_models() -> dict:
     return tomllib.loads((CONFIG_DIR / "models.toml").read_text(encoding="utf-8"))
 

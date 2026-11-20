@@ -26,9 +26,9 @@ class AgyBackend(Backend):
         try:
             p = subprocess.run([self.bin, "changelog"], capture_output=True, text=True, timeout=30)
             m = re.search(r"\b(\d+\.\d+\.\d+)\b", p.stdout)
-            return m.group(1) if m else "sconosciuta"
+            return m.group(1) if m else "unknown"
         except Exception:
-            return "sconosciuta"
+            return "unknown"
 
     def call(self, model: dict, prompt: str, schema: dict | None, timeout: int) -> CallResult:
         with self.workdir() as d:

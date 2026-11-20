@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2026 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 import collections
 import dataclasses
 import json
-from typing import Dict, Optional, Sequence, Union
+from typing import Dict, Optional, Union
 
 from . import instructions_registry
 
@@ -40,10 +40,21 @@ class OutputExample:
   follow_instruction_list: list[bool]
 
 
+def empty_output(inp):
+  """Builds a failed output for prompts with no generated response."""
+  return OutputExample(
+      instruction_id_list=inp.instruction_id_list,
+      prompt=inp.prompt,
+      response="",
+      follow_all_instructions=False,
+      follow_instruction_list=[False] * len(inp.instruction_id_list),
+  )
+
+
 def read_prompt_list(input_jsonl_filename):
   """Read inputs from jsonl."""
   inputs = []
-  with open(input_jsonl_filename, "r") as f:
+  with open(input_jsonl_filename, "r", encoding="utf-8") as f:
     for l in f:
       example = json.loads(l)
       inputs.append(
@@ -57,7 +68,7 @@ def read_prompt_list(input_jsonl_filename):
 def write_outputs(output_jsonl_filename, outputs):
   """Writes outputs to jsonl."""
   assert outputs
-  with open(output_jsonl_filename, "w") as f:
+  with open(output_jsonl_filename, "w", encoding="utf-8") as f:
     for o in outputs:
       f.write(
           json.dumps(
@@ -77,20 +88,23 @@ def test_instruction_following_strict(
     prompt_to_response,
 ):
   """Tests response to see if instrutions are followed."""
-  response = prompt_to_response[inp.prompt]
+  response = get_response_for_prompt(inp, prompt_to_response)
+  if response is None:
+    return empty_output(inp)
+
   instruction_list = inp.instruction_id_list
   is_following_list = []
 
   for index, instruction_id in enumerate(instruction_list):
     instruction_cls = instructions_registry.INSTRUCTION_DICT[instruction_id]
     instruction = instruction_cls(instruction_id)
-
-    instruction.build_description(**inp.kwargs[index])  # pyrefly: ignore[bad-argument-type]
+    inp.kwargs[index] = {key: value for key, value in inp.kwargs[index].items() if value is not None}
+    instruction.build_description(**inp.kwargs[index])
     args = instruction.get_instruction_args()
     if args and "prompt" in args:
-      instruction.build_description(prompt=inp.prompt)  # pyrefly: ignore[unexpected-keyword]
+      instruction.build_description(prompt=inp.prompt)
 
-    if response.strip() and instruction.check_following(response):
+    if response and response.strip() and instruction.check_following(response):
       is_following_list.append(True)
     else:
       is_following_list.append(False)
@@ -109,7 +123,10 @@ def test_instruction_following_loose(
     prompt_to_response,
 ):
   """Tests response for an upper bound for following instructions."""
-  response = prompt_to_response[inp.prompt]
+  response = get_response_for_prompt(inp, prompt_to_response)
+  if response is None:
+    return empty_output(inp)
+
   r = response.split("\n")
   response_remove_first = "\n".join(r[1:]).strip()
   response_remove_last = "\n".join(r[:-1]).strip()
@@ -135,10 +152,10 @@ def test_instruction_following_loose(
     instruction_cls = instructions_registry.INSTRUCTION_DICT[instruction_id]
     instruction = instruction_cls(instruction_id)
 
-    instruction.build_description(**inp.kwargs[index])  # pyrefly: ignore[bad-argument-type]
+    instruction.build_description(**inp.kwargs[index])
     args = instruction.get_instruction_args()
     if args and "prompt" in args:
-      instruction.build_description(prompt=inp.prompt)  # pyrefly: ignore[unexpected-keyword]
+      instruction.build_description(prompt=inp.prompt)
 
     is_following = False
     for r in all_responses:
@@ -160,11 +177,21 @@ def test_instruction_following_loose(
 def read_prompt_to_response_dict(input_jsonl_filename):
   """Creates dictionary matching prompt and response."""
   return_dict = {}
-  with open(input_jsonl_filename, "r") as f:
+  with open(input_jsonl_filename, "r", encoding="utf-8") as f:
     for l in f:
       example = json.loads(l)
       return_dict[example["prompt"]] = example["response"]
+      stripped_prompt = example["prompt"].strip()
+      if stripped_prompt != example["prompt"]:
+        return_dict[stripped_prompt] = example["response"]
   return return_dict
+
+
+def get_response_for_prompt(inp, prompt_to_response):
+  """Returns a prompt response, tolerating harmless leading/trailing spaces."""
+  if inp.prompt in prompt_to_response:
+    return prompt_to_response[inp.prompt]
+  return prompt_to_response.get(inp.prompt.strip())
 
 
 def print_report(outputs):
@@ -217,4 +244,3 @@ def print_report(outputs):
   for instruction_id in sorted(tier1_total.keys()):
     accuracy = tier1_correct[instruction_id] / tier1_total[instruction_id]
     print(f"{instruction_id} {accuracy}")
-

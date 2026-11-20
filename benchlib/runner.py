@@ -21,7 +21,7 @@ from .grading import grade
 from .prompts import build
 from .suite import resolve_suite, suite_items
 
-TEXT_LIMIT = 30_000
+TEXT_LIMIT = 200_000   # long enough that `bench.py regrade` sees the whole reply
 
 
 def now_iso() -> str:
@@ -75,11 +75,11 @@ class QuotaGuard:
         w, h = bk.get("weekly"), bk.get("5h")
         if w and w in snap:
             if 1 - snap[w]["used"] < self.reserve_weekly:
-                return "stop", f"limite settimanale quasi esaurito (rimane {100 * (1 - snap[w]['used']):.1f}%)"
+                return "stop", f"weekly limit almost exhausted ({100 * (1 - snap[w]['used']):.1f}% left)"
             if self.max_weekly is not None and block_before and w in block_before:
                 spent = self.weekly_spent + max(0.0, snap[w]["used"] - block_before[w]["used"])
                 if spent >= self.max_weekly:
-                    return "stop", f"budget settimanale per modello raggiunto ({100 * spent:.1f}%)"
+                    return "stop", f"per-model weekly budget reached ({100 * spent:.1f}%)"
         if h and h in snap and 1 - snap[h]["used"] < self.reserve_5h:
             return "wait", snap[h].get("reset") or ""
         return "ok", ""
@@ -89,7 +89,7 @@ class QuotaGuard:
             return False
         t = _parse_iso(reset_iso)
         secs = 15 * 60 if t is None else max(60.0, (t - dt.datetime.now(dt.timezone.utc)).total_seconds() + 90)
-        self.log(f"    finestra 5h quasi esaurita: attendo {secs / 60:.0f} min (reset {reset_iso})")
+        self.log(f"    5-hour window almost exhausted: waiting {secs / 60:.0f} min (reset {reset_iso})")
         time.sleep(secs)
         return True
 
@@ -106,12 +106,12 @@ def run(backend_name: str, models: list[str] | None, benches: list[str] | None, 
     if models:
         unknown = set(models) - {m["key"] for m in cfg_models}
         if unknown:
-            raise SystemExit(f"modelli non configurati per {backend_name}: {', '.join(sorted(unknown))}")
+            raise SystemExit(f"models not configured for {backend_name}: {', '.join(sorted(unknown))}")
         cfg_models = [m for m in cfg_models if m["key"] in models]
     benches = benches or list(lock["benchmarks"])
     for b in benches:
         if b not in lock["benchmarks"]:
-            raise SystemExit(f"benchmark '{b}' non incluso nella suite bloccata")
+            raise SystemExit(f"benchmark '{b}' is not part of the locked suite")
 
     meta_path = RESULTS_DIR / backend_name / "meta.json"
     meta = json.loads(meta_path.read_text()) if meta_path.exists() else {"runs": []}
@@ -120,14 +120,14 @@ def run(backend_name: str, models: list[str] | None, benches: list[str] | None, 
     meta_path.parent.mkdir(parents=True, exist_ok=True)
     meta_path.write_text(json.dumps(meta, indent=1))
 
-    log(f"Backend {backend_name} | preset '{lock['preset']}' | {len(cfg_models)} modelli | "
-        f"{len(benches)} benchmark | {workers} richieste parallele")
+    log(f"Backend {backend_name} | preset '{lock['preset']}' | {len(cfg_models)} models | "
+        f"{len(benches)} benchmarks | {workers} parallel requests")
     for model in cfg_models:
         stopped = _run_model(backend, model, lock, benches, workers, timeout, retries,
                              QuotaGuard(backend, model, reserve_5h, reserve_weekly, max_weekly, wait, log),
                              check_every, log)
         if stopped:
-            log(f"  [{model['key']}] interrotto: {stopped}. Rilancia lo stesso comando per riprendere.")
+            log(f"  [{model['key']}] stopped: {stopped}. Run the same command again to resume.")
 
 
 def _run_model(backend, model, lock, benches, workers, timeout, retries, guard, check_every, log):
@@ -145,9 +145,9 @@ def _run_model(backend, model, lock, benches, workers, timeout, retries, guard, 
                 done.add(r["id"])
         pending = [it for it in items if it["id"] not in done and attempts.get(it["id"], 0) < 1 + retries]
         if not pending:
-            log(f"  [{model['key']}] {bench}: completo ({len(done)}/{len(items)})")
+            log(f"  [{model['key']}] {bench}: complete ({len(done)}/{len(items)})")
             continue
-        log(f"  [{model['key']}] {bench}: {len(pending)} item da eseguire ({len(done)} già fatti)")
+        log(f"  [{model['key']}] {bench}: {len(pending)} items to run ({len(done)} already done)")
 
         while pending:
             if hasattr(backend, "warmup") and backend.quota_snapshot() is None:
@@ -158,7 +158,7 @@ def _run_model(backend, model, lock, benches, workers, timeout, retries, guard, 
                 return info
             if v == "wait":
                 if not guard.sleep_until(info):
-                    return "finestra 5h esaurita (--no-wait)"
+                    return "5-hour window exhausted (--no-wait)"
                 continue
             block = {"block": uuid.uuid4().hex[:12], "bench": bench, "model": model["key"],
                      "backend": backend.name, "started": now_iso(), "before": before, "items": []}
@@ -176,8 +176,7 @@ def _run_model(backend, model, lock, benches, workers, timeout, retries, guard, 
                     for fut in finished:
                         it = inflight.pop(fut)
                         res, started, ended, elapsed = fut.result()
-                        g = grade(bench, it, res.as_dict()) if res.ok else \
-                            {"correct": False, "score": 0.0, "extracted": None, "detail": "call failed"}
+                        g = safe_grade(bench, it, res.as_dict(), res.ok)
                         rec = {
                             "bench": bench, "id": it["id"], "backend": backend.name, "model": model["key"],
                             "cli_model": model["cli_model"], "effort": model.get("effort"),
@@ -217,8 +216,46 @@ def _run_model(backend, model, lock, benches, workers, timeout, retries, guard, 
                 if v == "stop":
                     return info
                 if not guard.sleep_until(info):
-                    return "finestra 5h esaurita (--no-wait)"
+                    return "5-hour window exhausted (--no-wait)"
     return None
+
+
+def safe_grade(bench: str, item: dict, call: dict, ok: bool) -> dict:
+    """Grade a reply; a grader crash is recorded (and fixable with `bench.py regrade`) instead
+    of stopping the run and losing the reply."""
+    if not ok:
+        return {"correct": False, "score": 0.0, "extracted": None, "detail": "call failed"}
+    try:
+        return grade(bench, item, call)
+    except Exception as e:
+        return {"correct": False, "score": 0.0, "extracted": None, "detail": f"grader exception: {e!r}"[:500],
+                "grader_error": True}
+
+
+def regrade(log=print) -> None:
+    """Re-score every stored reply with the current graders (no model is called)."""
+    from .suite import read_lock
+
+    lock = read_lock()
+    if not lock:
+        raise SystemExit("No suite lock: nothing to regrade.")
+    pools = {b: {it["id"]: it for it in suite_items(lock, b)} for b in lock["benchmarks"]}
+    for path in sorted(RESULTS_DIR.glob("*/*/*.jsonl")):
+        bench = path.stem
+        if bench not in pools:
+            continue
+        recs, changed = load_records(path), 0
+        for r in recs:
+            it = pools[bench].get(r["id"])
+            if it is None:
+                continue
+            g = safe_grade(bench, it, r["call"], r["call"]["ok"])
+            changed += g["correct"] != r["grade"]["correct"]
+            r["grade"] = g
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs), encoding="utf-8")
+        tmp.replace(path)
+        log(f"  {path.relative_to(RESULTS_DIR)}: {len(recs)} records, {changed} verdicts changed")
 
 
 def _timed_call(backend, model, prompt, schema, timeout):
@@ -227,5 +264,5 @@ def _timed_call(backend, model, prompt, schema, timeout):
         res = backend.call(model, prompt, schema, timeout)
     except Exception as e:  # never kill the pool
         from .backends.base import CallResult
-        res = CallResult(ok=False, error=f"eccezione: {e}")
+        res = CallResult(ok=False, error=f"exception: {e}")
     return res, started, now_iso(), time.perf_counter() - t0

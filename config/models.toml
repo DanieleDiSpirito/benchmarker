@@ -1,83 +1,102 @@
-# Modelli da valutare, per backend (CLI in modalità abbonamento).
+# Models under test, per backend (subscription CLIs).
 #
-#   key        identificativo stabile usato nei file di risultato e nel paper
-#   label      nome mostrato nel paper
-#   cli_model  valore passato a --model / -m della CLI
-#   effort     livello di ragionamento (per agy è già nel nome del modello; per claude viene passato
-#              come --effort, per codex come model_reasoning_effort)
-#   pricing    chiave in config/pricing.toml per la stima del costo API
+#   key        stable id used in result files and in the paper
+#   label      name shown in the paper
+#   cli_model  value passed to --model / -m of the CLI
+#   effort     reasoning effort: for agy it is part of the model id; claude gets --effort,
+#              codex gets -c model_reasoning_effort
+#   pricing    key in config/pricing.toml used for the API cost estimate
+#
+# All models run at the same effort ("medium") so that the comparison is fair.
 
 [agy]
-binary = "agy"              # sovrascrivibile con la variabile d'ambiente AGY_BIN
-workers = 3                 # richieste in parallelo per modello
+plan = "Google AI Pro ($20/month)"   # subscription the quota figures refer to
+binary = "agy"              # override with the AGY_BIN environment variable
+workers = 3                 # parallel requests per model
 
 [[agy.models]]
 key = "gemini-4-neon"
 label = "Gemini 4 Neon"
-cli_model = "gemini-4-neon-high"
-effort = "high"
+cli_model = "gemini-4-neon-medium"
+effort = "medium"
 pricing = "gemini-4-neon"
 
 [[agy.models]]
 key = "gemini-4-argon"
 label = "Gemini 4 Argon"
-cli_model = "gemini-4-argon-high"
-effort = "high"
+cli_model = "gemini-4-argon-medium"
+effort = "medium"
 pricing = "gemini-4-argon"
 
 [[agy.models]]
 key = "gemini-4-hydrogen"
 label = "Gemini 4 Hydrogen"
-cli_model = "gemini-4-hydrogen-high"
-effort = "high"
+cli_model = "gemini-4-hydrogen-medium"
+effort = "medium"
 pricing = "gemini-4-hydrogen"
 
+[[agy.models]]
+key = "gemini-3.8-flash"
+label = "Gemini 3.8 Flash"
+cli_model = "gemini-3.8-flash-medium"
+effort = "medium"
+pricing = "gemini-3.8-flash"
+
 [claude]
-binary = "claude"           # Claude Code; sovrascrivibile con la variabile d'ambiente CLAUDE_BIN
+plan = "Claude Pro ($20/month)"   # subscription the quota figures refer to
+binary = "claude"           # Claude Code; override with the CLAUDE_BIN environment variable
 workers = 3
 
 [[claude.models]]
 key = "claude-opus-5-5"
 label = "Claude Opus 5.5"
 cli_model = "claude-opus-5-5"
-effort = "high"
+effort = "medium"
 pricing = "claude-opus-5-5"
 
 [[claude.models]]
 key = "claude-sonnet-5-5"
 label = "Claude Sonnet 5.5"
 cli_model = "claude-sonnet-5-5"
-effort = "high"
+effort = "medium"
 pricing = "claude-sonnet-5-5"
 
 [[claude.models]]
 key = "claude-haiku-5-5"
 label = "Claude Haiku 5.5"
 cli_model = "claude-haiku-5-5"
-effort = "high"
+effort = "medium"
 pricing = "claude-haiku-5-5"
 
 [codex]
-binary = "codex"            # sovrascrivibile con la variabile d'ambiente CODEX_BIN
+plan = "ChatGPT Plus ($20/month)"   # subscription the quota figures refer to
+binary = "codex"            # override with the CODEX_BIN environment variable
 workers = 3
 
 [[codex.models]]
 key = "gpt-6.2-astra"
 label = "GPT-6.2 Astra"
 cli_model = "gpt-6.2-astra"
-effort = "high"
+effort = "medium"
 pricing = "gpt-6.2-astra"
 
 [[codex.models]]
 key = "gpt-6.2-sol"
 label = "GPT-6.2 Sol"
 cli_model = "gpt-6.2-sol"
-effort = "high"
+effort = "medium"
 pricing = "gpt-6.2-sol"
 
 [[codex.models]]
 key = "gpt-6.1-terra"
 label = "GPT-6.1 Terra"
 cli_model = "gpt-6.1-terra"
-effort = "high"
+effort = "medium"
 pricing = "gpt-6.1-terra"
+
+[[codex.models]]
+key = "gpt-6-luna"
+label = "GPT-6 Luna"
+cli_model = "gpt-6-luna"
+effort = "medium"
+pricing = "gpt-6-luna"

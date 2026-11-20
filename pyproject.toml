@@ -1,13 +1,15 @@
 [project]
 name = "benchmarker"
 version = "1.0.0"
-description = "Benchmark deterministico di LLM via CLI in abbonamento (Antigravity agy, Codex) con token, costo API stimato e quota 5h/settimanale"
+description = "Deterministic LLM benchmark through subscription CLIs (Antigravity agy, Claude Code, Codex) with token usage, estimated API cost and 5-hour / weekly quota"
 requires-python = ">=3.10"
 dependencies = [
     "pyarrow>=15",
     "numpy>=1.26",
     "math-verify[antlr4_13_2]>=0.7",
     "langdetect>=1.0.9",
+    "emoji>=2.10",
+    "syllapy>=0.8.0",
     "nltk>=3.9",
     "absl-py>=2.0",
     "immutabledict>=4.0",

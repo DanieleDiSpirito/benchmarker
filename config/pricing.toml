@@ -1,11 +1,10 @@
-# Prezzi API Standard in USD per milione di token, usati SOLO per stimare quanto
-# costerebbe lo stesso traffico via API. Non sono addebiti dell'abbonamento.
+# Standard API prices in USD per million tokens, used ONLY to estimate what the same
+# traffic would cost through the API. They are not subscription charges.
 #
-# Ogni voce può avere valid_from / valid_until (YYYY-MM-DD, inclusivi): per ogni
-# richiesta si usa la voce valida nel giorno in cui è stata eseguita.
-# I token di reasoning sono fatturati come output e sono già inclusi negli output
-# token riportati dalle CLI: non vanno sommati due volte.
-# confidence: "official" (documentazione del provider), "secondary" (fonti terze).
+# An entry may have valid_from / valid_until (YYYY-MM-DD, inclusive): each request uses the
+# entry valid on the day it ran. Reasoning tokens are billed as output and are already part
+# of the output tokens reported by the CLIs: they are never added twice.
+# confidence: "official" (provider documentation) or "secondary" (third-party sources).
 
 checked_on = "2026-11-20"
 
@@ -13,28 +12,28 @@ checked_on = "2026-11-20"
 key = "claude-opus-5-5"
 input = 4.00
 cached_input = 0.20
-cache_write = 8.00       # scrittura cache con TTL 1h (2x input), quella usata da Claude Code
+cache_write = 8.00       # 1-hour cache write (2x input), the TTL Claude Code uses
 output = 20.00
 confidence = "official"
-source = "Anthropic, tabella modelli e prezzi (Claude API), 2026-11"
+source = "Anthropic model and pricing table (Claude API), 2026-11"
 
 [[price]]
 key = "claude-sonnet-5-5"
 input = 2.00
 cached_input = 0.10
-cache_write = 4.00       # scrittura cache con TTL 1h (2x input), quella usata da Claude Code
+cache_write = 4.00       # 1-hour cache write (2x input), the TTL Claude Code uses
 output = 10.00
 confidence = "official"
-source = "Anthropic, tabella modelli e prezzi (Claude API), 2026-11"
+source = "Anthropic model and pricing table (Claude API), 2026-11"
 
 [[price]]
 key = "claude-haiku-5-5"
 input = 0.10
-cached_input = 0.005     # ipotesi: 5% dell'input come Opus e Sonnet 5.5
-cache_write = 0.20       # scrittura cache con TTL 1h (2x input), quella usata da Claude Code
+cached_input = 0.005     # assumption: 5% of input, as for Opus and Sonnet 5.5
+cache_write = 0.20       # 1-hour cache write (2x input), the TTL Claude Code uses
 output = 0.50
 confidence = "official"
-source = "Anthropic, tabella modelli e prezzi (Claude API), 2026-11; prompt fino a 100K token"
+source = "Anthropic model and pricing table (Claude API), 2026-11; prompts up to 100K tokens"
 
 [[price]]
 key = "gemini-4-neon"
@@ -42,7 +41,7 @@ input = 3.00
 cached_input = 0.15
 output = 15.00
 confidence = "secondary"
-source = "Fonti terze sul rilascio GA del 2026-11-18; da verificare su ai.google.dev/pricing"
+source = "Third-party reports on the 2026-11-18 GA release; verify on ai.google.dev/pricing"
 
 [[price]]
 key = "gemini-4-hydrogen"
@@ -50,25 +49,25 @@ input = 1.50
 cached_input = 0.075
 output = 7.50
 confidence = "secondary"
-source = "Più fonti concordi (es. layer3labs.io, pricepertoken.com); da verificare su ai.google.dev/pricing"
+source = "Several consistent sources (e.g. layer3labs.io, pricepertoken.com); verify on ai.google.dev/pricing"
 
 [[price]]
 key = "gemini-4-argon"
 valid_until = "2026-11-30"
 input = 2.00
-cached_input = 0.10      # ipotesi: 5% dell'input come gli altri Gemini 4
+cached_input = 0.10      # assumption: 5% of input, as for the other Gemini 4 models
 output = 10.00
 confidence = "secondary"
-source = "Prezzo introduttivo fino al 2026-11-30 (letsdatascience.com, mindstudio.ai)"
+source = "Introductory price until 2026-11-30 (letsdatascience.com, mindstudio.ai)"
 
 [[price]]
 key = "gemini-4-argon"
 valid_from = "2026-12-01"
 input = 4.00
-cached_input = 0.20      # ipotesi: 5% dell'input come gli altri Gemini 4
+cached_input = 0.20      # assumption: 5% of input, as for the other Gemini 4 models
 output = 20.00
 confidence = "secondary"
-source = "Prezzo standard dal 2026-12-01 (letsdatascience.com, mindstudio.ai)"
+source = "Standard price from 2026-12-01 (letsdatascience.com, mindstudio.ai)"
 
 [[price]]
 key = "gpt-6.2-astra"
@@ -76,7 +75,7 @@ input = 8.00
 cached_input = 0.40
 output = 40.00
 confidence = "secondary"
-source = "Fonti che citano la pagina prezzi OpenAI (aiweekly.co, apidog.com), lancio 2026-11-17"
+source = "Sources quoting the OpenAI pricing page (aiweekly.co, apidog.com), launched 2026-11-17"
 
 [[price]]
 key = "gpt-6.2-sol"
@@ -84,7 +83,7 @@ input = 2.00
 cached_input = 0.10
 output = 10.00
 confidence = "secondary"
-source = "Fonti che citano la pagina prezzi OpenAI (smartscope.blog), stesso prezzo di GPT-6.1 Sol"
+source = "Sources quoting the OpenAI pricing page (smartscope.blog), same price as GPT-6.1 Sol"
 
 [[price]]
 key = "gpt-6.1-terra"
@@ -92,4 +91,31 @@ input = 1.00
 cached_input = 0.05
 output = 5.00
 confidence = "secondary"
-source = "Tabella del centro assistenza OpenAI (help.openai.com); da verificare su developers.openai.com/api/docs/pricing"
+source = "OpenAI help-center table (help.openai.com); verify on developers.openai.com/api/docs/pricing"
+
+[[price]]
+key = "gemini-3.8-flash"
+valid_until = "2026-12-31"
+input = 0.75
+cached_input = 0.075
+output = 3.75
+confidence = "secondary"
+source = "Introductory rate until 2026-12-31 (apidog.com, mindstudio.ai, tech-insider.org); verify on ai.google.dev/pricing"
+
+[[price]]
+key = "gemini-3.8-flash"
+valid_from = "2027-01-01"
+input = 1.50
+cached_input = 0.15
+output = 7.50
+confidence = "secondary"
+source = "Standard rate from 2027-01-01 (apidog.com, mindstudio.ai); verify on ai.google.dev/pricing"
+
+[[price]]
+key = "gpt-6-luna"
+input = 0.10
+cached_input = 0.01
+cache_write = 0.125
+output = 0.50
+confidence = "official"
+source = "OpenAI API pricing page (developers.openai.com/api/docs/pricing), checked 2026-10-16"

@@ -52,7 +52,7 @@ class CodexBackend(Backend):
         try:
             return subprocess.run([self.bin, "--version"], capture_output=True, text=True, timeout=30).stdout.strip()
         except Exception:
-            return "sconosciuta"
+            return "unknown"
 
     # --- rollout parsing ---------------------------------------------------
     @staticmethod

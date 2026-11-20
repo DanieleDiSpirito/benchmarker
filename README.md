@@ -1,90 +1,120 @@
-# Benchmarker
+# Which $20 AI Subscription Gives a Student the Most?
 
-Benchmark deterministico di LLM usati **in abbonamento** tramite CLI:
+*Daniele Di Spirito, Maurizio Camposeo*
 
-- **Antigravity (`agy`)**: Gemini 4 Neon, Gemini 4 Argon, Gemini 4 Hydrogen
-- **Claude Code (`claude`)**: Claude Opus 5.5, Claude Sonnet 5.5, Claude Haiku 5.5
-- **Codex (`codex`)**: GPT-6.2 Astra, GPT-6.2 Sol, GPT-6.1 Terra
+A deterministic benchmark of the models included in the $20/month plans of Google (Google AI Pro),
+Anthropic (Claude Pro) and OpenAI (ChatGPT Plus), run **through each plan's own CLI**. Model quality is only
+half of the answer: a very strong model you can use for five prompts a week is worth less than a weaker one
+you can use all day. So for every answer we measure:
 
-Per ogni modello misura l'accuratezza su coding (HumanEval+, MBPP+), matematica (AIME 2026, MATH-500 livello 5),
-conoscenza (MMLU-Pro) e instruction following (IFEval). Nessun punteggio usa un LLM-as-a-Judge. Misura anche:
+- accuracy on hard tasks, scored **without any LLM judge**;
+- **cost per answer** if the same request went through the API (`config/pricing.toml`);
+- **input / output / reasoning tokens**;
+- **time per answer**;
+- the share of the **5-hour** and **weekly** limits consumed, read from the CLI's own quota counters, and the
+  resulting **capacity** (tasks per window / week);
+- **consumption/speed clusters**: k-means on cost, output tokens and median time per answer (number of groups
+  chosen by silhouette), with one comparison table per cluster.
 
-- token di **input** (con la parte da cache), **output** e **reasoning**;
-- **costo stimato via API** (prezzi in `config/pricing.toml`);
-- **percentuale consumata** della finestra di **5 ore** e del limite **settimanale**, letta dalla CLI prima e dopo
-  ogni blocco di richieste.
+All models run at **medium** reasoning effort. The output is `paper/benchmark_paper.pdf`.
 
-Il risultato è un paper PDF in `paper/benchmark_paper.pdf`: prima descrive metodo e metriche, poi riporta le tabelle e i grafici.
+| Plan | CLI | Models |
+|---|---|---|
+| Google AI Pro | `agy` (Antigravity) | Gemini 4 Neon, Gemini 4 Argon, Gemini 4 Hydrogen, Gemini 3.8 Flash |
+| Claude Pro | `claude` (Claude Code) | Claude Opus 5.5, Claude Sonnet 5.5, Claude Haiku 5.5 |
+| ChatGPT Plus | `codex` (Codex CLI) | GPT-6.2 Astra, GPT-6.2 Sol, GPT-6.1 Terra, GPT-6 Luna |
 
-## Requisiti
+## Benchmarks
 
-- [uv](https://docs.astral.sh/uv/). Installa da solo Python 3.14 e le dipendenze al primo `uv run`.
-- La CLI del proprio abbonamento, già autenticata: `agy`, `claude` oppure `codex`.
+| Benchmark | Area | Scoring |
+|---|---|---|
+| LiveCodeBench v6, hard (Jan–Apr 2025) | Coding | program run on every hidden test |
+| HMMT February 2026 | Math | symbolic equivalence (math-verify) |
+| BeyondAIME | Math | exact integer |
+| SuperGPQA, hard | Graduate-level knowledge | option letter |
+| BIG-Bench Extra Hard, mini | Reasoning | official BBEH matching |
+| IFBench | Instruction following | official AllenAI verifiers |
 
-Non servono LaTeX né altri programmi: il PDF viene generato in Python.
+## Requirements
 
-## Uso
+- [uv](https://docs.astral.sh/uv/): it installs Python 3.14 and the dependencies on the first `uv run`.
+- Your plan's CLI, already logged in: `agy`, `claude` or `codex`.
+
+No LaTeX is needed: the PDF is generated in Python. On first use the scripts download the NLTK tokenizers and
+the LiveCodeBench hidden tests (~134 MB, into `data/cache/`, not versioned).
+
+## Usage
 
 ```bash
-uv run bench.py selftest              # verifica i valutatori: tutte le soluzioni di riferimento devono passare
-uv run bench.py run --backend agy     # esegue i modelli Gemini (Antigravity) e rigenera il paper
-uv run bench.py run --backend claude  # esegue Opus, Sonnet e Haiku (Claude Code) e rigenera il paper
-uv run bench.py run --backend claude --models claude-haiku-5-5   # solo Haiku 5.5
-uv run bench.py status                # avanzamento, token, costo e quota per modello
-uv run bench.py paper                 # rigenera solo il PDF
+uv run bench.py selftest                       # validate every grader: all checks must pass
+uv run bench.py run --backend agy --preset mini   # first run only: --preset fixes the suite size
+uv run bench.py run --backend claude
+uv run bench.py run --backend claude --models claude-haiku-5-5   # a single model
+uv run bench.py status                         # progress, tokens, cost and quota per model
+uv run bench.py paper                          # rebuild the PDF only
+uv run bench.py regrade                        # re-score stored replies with the current graders
 ```
 
-Opzioni utili di `run`:
-
-| Opzione | Effetto |
+| Option | Effect |
 |---|---|
-| `--models k1 k2` | solo alcuni modelli (chiavi di `config/models.toml`) |
-| `--benchmarks b1 b2` | solo alcuni benchmark |
-| `--preset mini` | solo alla prima esecuzione: dimensione della suite (`smoke` 12, `mini` 40, `small` 88, `standard` 240 task per modello) |
-| `--max-weekly-per-model 30` | ferma un modello quando ha consumato il 30% del limite settimanale |
-| `--reserve-5h 3` / `--reserve-weekly 3` | quanta quota lasciare sempre libera (in %) |
-| `--no-wait` | se la finestra di 5 ore si esaurisce, fermati invece di attendere il reset |
-| `--workers 3` | richieste in parallelo |
+| `--preset` | first run only: suite size per model (`smoke` 12, `mini` 42, `small` 99, `standard` 282 tasks) |
+| `--models k1 k2` | only some models (keys in `config/models.toml`) |
+| `--benchmarks b1 b2` | only some benchmarks |
+| `--max-weekly-per-model 30` | stop a model once it has used 30% of the weekly limit |
+| `--reserve-5h 3` / `--reserve-weekly 3` | quota (%) always kept free |
+| `--no-wait` | stop instead of waiting for the 5-hour window to reset |
+| `--workers 3` | parallel requests |
 
-Le esecuzioni sono **riprendibili**: ogni risposta viene salvata appena arriva. Se interrompi lo script, se la quota
-finisce o se il PC si spegne, basta rilanciare lo stesso comando. Quando la finestra di 5 ore è quasi esaurita, lo
-script aspetta il reset e poi riparte da solo.
+Runs **resume**: every reply is saved as soon as it arrives. If the run stops (Ctrl-C, quota, shutdown), run the
+same command again. When the 5-hour window is nearly used up the runner waits for the reset and continues.
 
-## Estendere il paper con Codex (su un altro computer)
+**While a backend is running, do not use the same account for anything else** (for example no other Claude Code
+session during `--backend claude`): quota is measured as the difference between two readings of the account.
 
-Il progetto contiene già i risultati Gemini e Claude in `results/agy/` e `results/claude/`. Chi ha Codex deve:
+## Extending the paper with Codex (on another machine)
 
-1. avere `codex` installato e autenticato (`codex login`);
-2. dalla cartella del progetto, eseguire:
+1. Install and log in to the Codex CLI (`codex login`).
+2. From the repository:
    ```bash
    uv run bench.py selftest
    uv run bench.py run --backend codex
+   git add results/codex paper && git commit -m "Codex results"
    ```
-3. restituire la cartella `results/codex/` (oppure l'intero progetto) e il nuovo `paper/benchmark_paper.pdf`.
+3. Send the commit back (push, or `git bundle create codex.bundle --all`).
 
-`run --backend codex` usa la stessa suite fissata in `data/suite.lock.json`: stessi problemi, stesso ordine, stessi
-prompt. Aggiunge solo i dati Codex; quelli di Gemini e Claude non vengono toccati. Il paper viene rigenerato con tutti i
-risultati presenti in `results/`. Se gli ID dei modelli nella tua installazione di Codex sono diversi, modifica
-`cli_model` in `config/models.toml`. Puoi impostare anche `CODEX_BIN` (percorso della CLI) e `CODEX_HOME`.
+`run` always uses the suite pinned in `data/suite.lock.json` (same tasks, same order, same prompts) and only adds
+`results/codex/`; the other results are untouched and the paper is rebuilt from everything in `results/`. If your
+Codex model ids differ, edit `cli_model` in `config/models.toml`. `CODEX_BIN` / `CODEX_HOME` are honoured. If two
+people commit a regenerated PDF, resolve the conflict by running `uv run bench.py paper` again.
 
-Durante la misura non usare lo stesso account per altro (per esempio una sessione di Claude Code aperta mentre gira
-`--backend claude`): la percentuale di quota è la differenza tra due letture dello stesso account.
+## Quota measurement
 
-## Struttura
+- **agy**: `/quota` returns the remaining fraction of each group's 5-hour and weekly limits with 8 decimals.
+- **Claude Code** and **Codex**: usage is reported in whole percentage points. Totals per model are exact to ±1
+  point and are split across benchmarks by API cost; small totals are marked ≈, values derived from the other
+  window through the account's weekly/5-hour ratio are marked ~, and `<1%` means the counter never moved.
+  Quota is not proportional to list prices, so it is never estimated from them.
+
+## Layout
 
 ```
-bench.py                 comandi (prepare, selftest, run, status, paper)
-config/models.toml       modelli per backend (ID CLI, effort, chiave prezzo)
-config/pricing.toml      prezzi API $/M token con fonte e periodo di validità
-data/frozen/             item dei dataset, congelati e mescolati con seme fisso
-data/suite.lock.json     ID esatti degli item della suite in uso
-results/<backend>/<modello>/<benchmark>.jsonl   una riga per tentativo (risposta, token, punteggio)
-results/<backend>/<modello>/quota.jsonl         letture della quota prima/dopo ogni blocco
-benchlib/                runner, backend, valutatori, analisi, grafici, paper
-benchlib/vendor/ifeval/  verificatori IFEval di Google Research (Apache 2.0)
+bench.py                 commands (prepare, selftest, run, status, paper, regrade)
+config/models.toml       plans and models per CLI (model id, effort, price key)
+config/pricing.toml      API prices $/M tokens, with source and validity dates
+data/frozen/             frozen, shuffled benchmark items
+data/suite.lock.json     exact item ids of the suite in use
+results/<cli>/<model>/<benchmark>.jsonl   one line per attempt (reply, tokens, score)
+results/<cli>/<model>/quota.jsonl         quota readings before/after each block
+benchlib/                runner, CLI backends, graders, analysis, clustering, charts, paper
+benchlib/vendor/         IFBench (AllenAI) and BBEH (Google) official scorers, Apache 2.0
+archive/                 results of earlier suite versions
 ```
 
-Se un prezzo cambia, correggi `config/pricing.toml` e lancia `uv run bench.py paper`: i costi vengono ricalcolati
-dai token salvati, senza ripetere le esecuzioni.
+Generated code is executed in a separate `python -I` process in a temporary directory with CPU and file-size
+limits; on macOS a `sandbox-exec` profile also blocks network access and writes outside that directory. On
+Linux there is no such sandbox: run the benchmark in a container or VM if that matters to you.
 
-Per passare il progetto a un'altra persona, copia l'intera cartella tranne `.venv/` (uv la ricrea da solo).
+If a price changes, edit `config/pricing.toml` and run `uv run bench.py paper`: costs are recomputed from the
+stored tokens without running anything again.
+
+To hand the project over, share the git repository (`.venv/` and `data/cache/` are not versioned).

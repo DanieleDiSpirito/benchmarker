@@ -41,7 +41,7 @@ class ClaudeBackend(Backend):
         try:
             return subprocess.run([self.bin, "--version"], capture_output=True, text=True, timeout=30).stdout.strip()
         except Exception:
-            return "sconosciuta"
+            return "unknown"
 
     def _remember(self, obs: dict) -> None:
         with self._lock:

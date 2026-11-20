@@ -1,0 +1,84 @@
+{
+ "preset": "mini",
+ "created": "2026-11-20T15:19:24+00:00",
+ "benchmarks": {
+  "livecodebench_hard": {
+   "n": 6,
+   "pool_sha256_16": "15527306050f6821",
+   "ids": [
+    "LCB/arc194_d",
+    "LCB/arc196_c",
+    "LCB/3784",
+    "LCB/abc388_g",
+    "LCB/arc194_c",
+    "LCB/abc396_f"
+   ]
+  },
+  "hmmt_feb_2026": {
+   "n": 6,
+   "pool_sha256_16": "82e81a23453d57fe",
+   "ids": [
+    "HMMT2026/21",
+    "HMMT2026/23",
+    "HMMT2026/1",
+    "HMMT2026/16",
+    "HMMT2026/3",
+    "HMMT2026/7"
+   ]
+  },
+  "beyond_aime": {
+   "n": 6,
+   "pool_sha256_16": "a9aedaf7f9905df3",
+   "ids": [
+    "beyond_aime/4a15d4fdfae7",
+    "beyond_aime/e72f39e5f371",
+    "beyond_aime/70d66041d22b",
+    "beyond_aime/cff2f0a5c61c",
+    "beyond_aime/fa8bf08d48e0",
+    "beyond_aime/f2755741d0f8"
+   ]
+  },
+  "supergpqa_hard": {
+   "n": 8,
+   "pool_sha256_16": "992bdfc3fb12fc6a",
+   "ids": [
+    "SuperGPQA/4724947a7f734ab2bd8437e770bbb043",
+    "SuperGPQA/7330622b98564c55b0a0390f52648b64",
+    "SuperGPQA/240b244bf06a413aa0d89c526f540bb0",
+    "SuperGPQA/d1dd9ec5629c41d2978708841b356032",
+    "SuperGPQA/07e1b41abb9444cfbd9d3abfde3fd2be",
+    "SuperGPQA/c18165652d764f8283c9ee5e0fcb766c",
+    "SuperGPQA/05794b31fd284213bcf70a1cebcbefba",
+    "SuperGPQA/a3b901d0a914403eaaec83f39d978ca1"
+   ]
+  },
+  "bbeh_mini": {
+   "n": 8,
+   "pool_sha256_16": "69537e5366ae0d95",
+   "ids": [
+    "bbeh_mini/2497def7d620",
+    "bbeh_mini/9fb195a4d5d2",
+    "bbeh_mini/f609d6e81954",
+    "bbeh_mini/7ad5c3554487",
+    "bbeh_mini/1a5969347f01",
+    "bbeh_mini/e98483901439",
+    "bbeh_mini/093cb9004172",
+    "bbeh_mini/83f2d79d8f20"
+   ]
+  },
+  "ifbench": {
+   "n": 8,
+   "pool_sha256_16": "a2ad95845ab4c2be",
+   "ids": [
+    "IFBench/139",
+    "IFBench/4",
+    "IFBench/190",
+    "IFBench/293",
+    "IFBench/108",
+    "IFBench/291",
+    "IFBench/159",
+    "IFBench/93"
+   ]
+  }
+ }
+}

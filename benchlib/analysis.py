@@ -368,3 +368,20 @@ def escalation(data: dict, model: dict, effort: str = "high") -> dict | None:
         out["quota"][w] = {"used": None if method == "bound" else used, "method": method,
                            "bound": res if method == "bound" else None}
     return out
+
+
+def item_times(model: dict, lock: dict | None = None) -> list[dict]:
+    """Final attempt of every task a model answered, in suite order (benchmark by benchmark):
+    {"bench", "id", "latency", "correct", "stalled"}. A failed call counts as wrong."""
+    lock = lock or read_lock()
+    mdir = cfg.RESULTS_DIR / model["backend"] / model["key"]
+    out = []
+    for bench, spec in (lock or {}).get("benchmarks", {}).items():
+        final = {r["id"]: r for r in load_records(mdir / f"{bench}.jsonl")}
+        for iid in spec["ids"]:
+            r = final.get(iid)
+            if r is None or r.get("latency_s") is None:
+                continue
+            out.append({"bench": bench, "id": iid, "latency": r["latency_s"],
+                        "correct": bool(r["call"]["ok"] and r["grade"]["correct"]), "stalled": is_stalled(r)})
+    return out

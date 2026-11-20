@@ -295,3 +295,62 @@ def fig_escalation(rows, path):
     plan_legend(fig, [m for m, _ in rows])
     fig.savefig(path)
     plt.close(fig)
+
+
+OK_COLOR, WRONG_COLOR = SERIES[0], SERIES[7]   # blue = correct, red = wrong
+BENCH_SHORT = {"livecodebench_hard": "LCB", "hmmt_feb_2026": "HMMT", "beyond_aime": "BAIME",
+               "supergpqa_hard": "SGPQA", "bbeh_mini": "BBEH", "ifbench": "IFB", "humaneval_plus": "HE+",
+               "mbpp_plus": "MBPP+", "aime_2026": "AIME", "math500_l5": "MATH", "mmlu_pro": "MMLU-P", "ifeval": "IFEval"}
+
+
+def fig_item_times(rows, path, ncols=2):
+    """rows: [(model, items)] with items from analysis.item_times. One panel per model: a bar per task in
+    suite order, grouped by benchmark; blue = correct, red = wrong. Each panel has its own time scale."""
+    import math
+    import statistics
+
+    n = len(rows)
+    nrows = math.ceil(n / ncols)
+    fig, axes = plt.subplots(nrows, ncols, figsize=(7.2, 0.4 + 1.45 * nrows), squeeze=False)
+    for ax in axes.flat[n:]:
+        ax.set_visible(False)
+    width = max(len(it) for _, it in rows)   # same bar width in every panel, even for a partial run
+    for ax, (m, items) in zip(axes.flat, rows):
+        x = np.arange(len(items))
+        lat = np.array([it["latency"] for it in items])
+        cols = [OK_COLOR if it["correct"] else WRONG_COLOR for it in items]
+        ax.bar(x, [0 if it["stalled"] else v for it, v in zip(items, lat)], width=0.8, color=cols, linewidth=0)
+        stalled = [i for i, it in enumerate(items) if it["stalled"]]
+        normal = [v for it, v in zip(items, lat) if not it["stalled"]]
+        top = max(normal or [1.0]) * 1.12
+        for i in stalled:   # provider stalls: clipped to the scale of the panel and marked
+            ax.bar(i, top, width=0.8, color=SURFACE, edgecolor=cols[i], hatch="////", linewidth=0.6)
+            ax.text(i + 0.8, top, f"{lat[i]:.0f} s", ha="left", va="top", fontsize=5.5, color=INK2)
+        ax.set_ylim(0, top)
+        # benchmark separators and labels
+        start = 0
+        for j in range(1, len(items) + 1):
+            if j == len(items) or items[j]["bench"] != items[start]["bench"]:
+                if j < len(items):
+                    ax.axvline(j - 0.5, color=MUTED, linewidth=0.5, zorder=0)
+                ax.text((start + j - 1) / 2, -0.04, BENCH_SHORT.get(items[start]["bench"], items[start]["bench"]),
+                        transform=ax.get_xaxis_transform(), ha="center", va="top", fontsize=5.5, color=INK2)
+                start = j
+        ax.set_xticks([])
+        ax.set_xlim(-0.6, width - 0.4)
+        ax.grid(axis="x", visible=False)
+        ax.tick_params(axis="y", labelsize=6)
+        med = lambda ok: statistics.median(v for it, v in zip(items, lat) if it["correct"] == ok and not it["stalled"]) \
+            if any(it["correct"] == ok and not it["stalled"] for it in items) else None
+        mo, mw = med(True), med(False)
+        sub = "  ".join(s for s in (f"median correct {mo:.0f} s" if mo is not None else "",
+                                    f"wrong {mw:.0f} s" if mw is not None else "") if s)
+        ax.set_title(f"{m['label']}", loc="left", fontsize=7.5)
+        ax.set_title(sub, loc="right", fontsize=6, fontweight="normal", color=INK2)
+        ax.set_ylabel("s", fontsize=6, rotation=0, labelpad=6)
+    fig.tight_layout(rect=(0, 0, 1, 1 - 0.35 / (0.4 + 1.45 * nrows)), h_pad=1.6)
+    fig.legend(handles=[Patch(color=OK_COLOR, label="Correct"), Patch(color=WRONG_COLOR, label="Wrong"),
+                        Patch(facecolor=SURFACE, edgecolor=MUTED, hatch="////", label="Provider stall (clipped)")],
+               ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.0), frameon=False, fontsize=7)
+    fig.savefig(path)
+    plt.close(fig)

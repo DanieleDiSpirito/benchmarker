@@ -20,7 +20,7 @@ from reportlab.platypus import (BaseDocTemplate, Frame, Image, KeepTogether, Nex
 
 from . import charts
 from .clusters import cluster
-from .analysis import MIN_STEPS, STALL_MAX_TPS, STALL_MIN_S, collect, escalation, model_summary, quota_text
+from .analysis import MIN_STEPS, STALL_MAX_TPS, STALL_MIN_S, collect, escalation, item_times, model_summary, quota_text
 from . import config as cfg
 from .config import all_models, backend_settings, price_for
 from .datasets import bench_info, is_legacy_suite
@@ -152,11 +152,15 @@ def build_paper(out: str | None = None) -> Path:
     pending = [] if is_legacy_suite(data["lock"]) else \
         [m for (b, k), m in all_models().items() if not any(x["backend"] == b and x["key"] == k for x in models)]
     with tempfile.TemporaryDirectory(prefix="bench_fig_") as figdir:
-        figs = {n: os.path.join(figdir, f"{n}.png") for n in ("acc", "value", "tok", "quota", "clusters", "esc")}
+        figs = {n: os.path.join(figdir, f"{n}.png") for n in ("acc", "value", "tok", "quota", "times", "clusters", "esc")}
         charts.fig_accuracy(data, models, figs["acc"])
         charts.fig_value(data, models, summ, figs["value"])
         charts.fig_tokens(data, models, summ, figs["tok"])
         charts.fig_quota(data, models, summ, figs["quota"])
+        times = [(m, it) for m in models if (it := item_times(m, data["lock"]))]
+        if times:
+            charts.fig_item_times(times, figs["times"])
+        data["has_times"] = bool(times)
         data["clusters"] = cluster(models, summ)
         charts.fig_clusters(data["clusters"], summ, figs["clusters"])
         data["escalation"] = [(m, e) for m in models if (e := escalation(data, m)) and e["rerun"]]
@@ -359,6 +363,10 @@ def _story(data, models, summ, pending, figs):
           _fig(figs["acc"], pw, "Figure 3. Accuracy per benchmark with 95% confidence intervals."),
           _fig(figs["tok"], pw * 0.92, "Figure 4. Mean tokens per answer. Input includes the CLI's system prompt; "
                "reasoning and visible output form the billed output.")]
+    if data.get("has_times"):
+        S.append(_fig(figs["times"], pw, "Figure 5. Time per task, one bar per task in suite order and grouped by "
+                      "benchmark: blue = correct, red = wrong (a failed call counts as wrong). Each panel has its own "
+                      "time scale. Provider stalls are clipped and labelled with their real time; medians exclude them."))
 
     # 4.1 clusters
     cl = data["clusters"]
@@ -367,7 +375,7 @@ def _story(data, models, summ, pending, figs):
         S.append(P(f"k-means finds <b>{cl['k']} groups</b> (silhouette {cl['silhouette']:.2f}; above 0.5 the groups are "
                    "well separated, below 0.25 they are weak). Each group is named after its centre relative to the median "
                    "model; the tables compare models only with their peers."))
-    S.append(_fig(figs["clusters"], pw, "Figure 5. Consumption and speed clusters (shaded regions). Colour shows the plan; "
+    S.append(_fig(figs["clusters"], pw, "Figure 6. Consumption and speed clusters (shaded regions). Colour shows the plan; "
                   "the grouping also uses output tokens, which this projection does not show."))
     hdr = ["Model", "Plan", "Mean<br/>acc.", "Cost per<br/>answer", "Input<br/>tokens", "Output<br/>tokens",
            "Reasoning<br/>tokens", "Median<br/>time", "Output<br/>tok/s", "5h quota<br/>/10 tasks", "Weekly<br/>/10 tasks"]
@@ -400,7 +408,7 @@ def _story(data, models, summ, pending, figs):
                 "means the model knew how to solve the task and simply did not think enough; a small one means the "
                 "error is a real limit of the model. The cost of escalation is what a student pays in quota for the "
                 "second attempt.")]
-        S.append(_fig(figs["esc"], pw, "Figure 6. Accuracy at the main effort and after re-running the wrong answers at "
+        S.append(_fig(figs["esc"], pw, "Figure 7. Accuracy at the main effort and after re-running the wrong answers at "
                       "high effort (cumulative)."))
         hdr = ["Model", "Recovered<br/>/ wrong", "Recovery<br/>rate", "Acc.<br/>main", "Acc.<br/>cumul.",
                "Cost per<br/>re-run", "Output<br/>per re-run", "Median<br/>time", "Extra<br/>5h quota", "Extra<br/>weekly"]

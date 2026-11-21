@@ -12,6 +12,8 @@ Every answer is checkpointed to results/ladder.json: run the same command again 
 Usage:
   python3 run_ladder.py --models codex:gpt-6.1-terra codex:gpt-6-luna
   python3 run_ladder.py --models agy:gemini-4-neon claude:claude-haiku-5-5 --tiers 3 4
+  python3 run_ladder.py --backend codex     # every Codex model of the main benchmark
+  python3 run_ladder.py --backend all       # agy, then claude, then codex
   python3 run_ladder.py --report            # only rebuild report/ladder_report.md
 
 Per model and level the report gives the single accuracy (solved / attempted at that level) and the
@@ -35,6 +37,16 @@ ROOT = pathlib.Path(__file__).parent
 LADDER_FILE = ROOT / "results" / "ladder.json"
 REPORT_FILE = ROOT / "report" / "ladder_report.md"
 LEVELS = ("low", "medium", "high")   # never beyond high
+MODELS_TOML = ROOT.parent / "config" / "models.toml"   # models of the main benchmark
+BACKENDS = ("agy", "claude", "codex")
+
+
+def benchmarked_models(backends: list[str]) -> list[str]:
+    """cli:model specs of every model in the main benchmark (config/models.toml) for these CLIs."""
+    import tomllib
+
+    cfg = tomllib.loads(MODELS_TOML.read_text(encoding="utf-8"))
+    return [f"{b}:{m['cli_model']}" for b in backends for m in cfg.get(b, {}).get("models", [])]
 
 
 # ---------------------------------------------------------------- CLI runners (effort as a parameter)
@@ -280,6 +292,8 @@ def write_report(store: dict) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--models", nargs="+", help="cli:model targets, e.g. codex:gpt-6.1-terra agy:gemini-4-neon")
+    ap.add_argument("--backend", nargs="+", choices=BACKENDS + ("all",),
+                    help="every model of the main benchmark (config/models.toml) for these CLIs; 'all' = agy claude codex")
     ap.add_argument("--tiers", nargs="+", type=int, default=[1, 2, 3, 4])
     ap.add_argument("--levels", nargs="+", choices=LEVELS, default=list(LEVELS),
                     help="stop the ladder early, e.g. --levels low medium (a level needs the ones below it)")
@@ -292,8 +306,10 @@ def main() -> int:
     if a.report:
         write_report(store)
         return 0
+    if a.backend:
+        a.models = (a.models or []) + benchmarked_models(list(BACKENDS) if "all" in a.backend else a.backend)
     if not a.models:
-        ap.error("--models is required (or use --report)")
+        ap.error("--models or --backend is required (or use --report)")
     if not DATASET_FILE.exists():
         print(f"[ERROR] {DATASET_FILE} not found. Run validate_dataset.py first.", file=sys.stderr)
         return 1

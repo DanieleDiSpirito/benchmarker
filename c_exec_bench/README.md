@@ -48,6 +48,8 @@ runs at **low** effort; only the pairs a model got wrong are re-run at **medium*
 **high** (never beyond high). Levels run phase by phase and every answer is checkpointed to `results/ladder.json`,
 so the same command resumes after a stop.
 ```bash
+python3 run_ladder.py --backend codex      # every Codex model of the main benchmark (config/models.toml)
+python3 run_ladder.py --backend agy claude # or several CLIs; --backend all = agy, claude, codex
 python3 run_ladder.py --models codex:gpt-6.1-terra codex:gpt-6-luna
 python3 run_ladder.py --models agy:gemini-4-neon --tiers 3 4      # agy: the effort suffix is added for you
 python3 run_ladder.py --report                                     # rebuild report/ladder_report.md only

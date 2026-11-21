@@ -115,7 +115,7 @@ def fig_value(data, models, summaries, path):
     fig, axes = plt.subplots(2, 1, figsize=(7.2, 8.4))
     panels = ((axes[0], lambda s: s["cost"] / s["attempts"] if s["cost"] is not None and s["attempts"] else None,
                "API-equivalent cost per answer (USD, log)", "Quality vs cost"),
-              (axes[1], lambda s: s["cap_weekly"], "Tasks per full weekly limit (log)", "Quality vs usable quota"))
+              (axes[1], lambda s: s["cap_weekly"], "Correct answers per full weekly limit (log)", "Quality vs usable quota"))
     pending = []
     for ax, fx, xlabel, title in panels:
         plotted, labels = 0, []

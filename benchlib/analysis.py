@@ -269,7 +269,8 @@ def model_summary(data: dict, model: dict) -> dict:
                               "coarse" if "coarse" in methods else "bound" if "bound" in methods else "measured")
         bounds = [q["bound"] for q in qs if q.get("bound")]
         s[f"q_{w}_bound"] = bounds[0] if bounds and not used else None
-        s[f"cap_{w}"] = s["attempts"] / s[f"q_{w}"] if s[f"q_{w}"] else None
+        # capacity: correct answers a full window would give (wrong answers consume quota but are not counted)
+        s[f"cap_{w}"] = s["correct"] / s[f"q_{w}"] if s[f"q_{w}"] else None
     return s
 
 

@@ -82,9 +82,9 @@ def cluster(models: list[dict], summaries: dict) -> dict:
     groups = []
     for j in sorted(set(lab), key=lambda j: raw[lab == j, 0].mean()):   # cheapest group first
         center = raw[lab == j].mean(0)
-        speed = "Fast" if center[2] < med[2] else "Slow"
-        use = "light" if center[0] < med[0] else "heavy"
-        groups.append({"name": f"{speed} & {use}",
+        speed = "Quick" if center[2] < med[2] else "Slow"
+        toks = "few tokens" if center[1] < med[1] else "many tokens"
+        groups.append({"name": f"{speed}, {toks}",
                        "members": [m for m, l in zip(keep, lab) if l == j],
                        "center": {f: 10 ** v for f, v in zip(FEATURES, center)}})
     for i, g in enumerate(groups, 1):   # the C-number keeps two groups with the same profile apart

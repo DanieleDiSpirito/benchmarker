@@ -12,7 +12,7 @@ you can use all day. So for every answer we measure:
 - **input / output / reasoning tokens**;
 - **time per answer**;
 - the share of the **5-hour** and **weekly** limits consumed, read from the CLI's own quota counters, and the
-  resulting **capacity** (tasks per window / week);
+  resulting **capacity**: correct answers per full 5-hour window / week;
 - **consumption/speed clusters**: k-means on cost, output tokens and median time per answer (number of groups
   chosen by silhouette), with one comparison table per cluster.
 

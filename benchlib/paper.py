@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 import matplotlib
+from reportlab import rl_config
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_JUSTIFY
 from reportlab.lib.pagesizes import A4, landscape
@@ -17,6 +18,8 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (BaseDocTemplate, Frame, Image, KeepTogether, NextPageTemplate, PageBreak,
                                 PageTemplate, Paragraph, Spacer, Table, TableStyle)
+
+rl_config.useA85 = 0   # binary compressed streams: git and GitHub then treat the PDF as binary
 
 from . import charts
 from .clusters import cluster

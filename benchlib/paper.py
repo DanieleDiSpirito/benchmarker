@@ -423,7 +423,7 @@ def _story(data, models, summ, pending, figs):
                      (f"{num(pr['input'], 2)} · {num(pr.get('cached_input', pr['input']), 3)} · {num(pr['output'], 2)}"
                       + ("" if pr.get("confidence") == "official" else "†")) if pr else "–",
                      "run" if done else "<i>pending</i>"])
-    S += [table(rows, [33 * mm, 11 * mm, 26 * mm, 41 * mm, 13 * mm, 32 * mm, 14 * mm],
+    S += [table(rows, [24 * mm, 12 * mm, 33 * mm, 42 * mm, 14 * mm, 32 * mm, 13 * mm],
                 groups=[b for b, _ in table_models]),
           P("Table 1. Plans and models. API prices only serve to express each answer's cost in dollars; "
             "† = third-party source, to be checked against the provider's pricing page.", "cap")]

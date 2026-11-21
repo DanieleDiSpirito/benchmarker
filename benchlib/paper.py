@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import json
 import os
 import tempfile
 from pathlib import Path
@@ -45,11 +44,11 @@ GROUP_RULE = colors.HexColor("#8a8984")   # rule between the models of different
 ST = {
     "title": ParagraphStyle("title", fontName="Serif-B", fontSize=17, leading=21, alignment=1, spaceAfter=6, textColor=INK),
     "sub": ParagraphStyle("sub", fontName="Serif", fontSize=9.5, leading=13, alignment=1, textColor=INK2, spaceAfter=14),
-    "h1": ParagraphStyle("h1", fontName="Serif-B", fontSize=12.5, leading=16, spaceBefore=12, spaceAfter=5, textColor=INK),
-    "h2": ParagraphStyle("h2", fontName="Serif-B", fontSize=10.5, leading=14, spaceBefore=8, spaceAfter=3, textColor=INK),
+    "h1": ParagraphStyle("h1", keepWithNext=1, fontName="Serif-B", fontSize=12.5, leading=16, spaceBefore=12, spaceAfter=5, textColor=INK),
+    "h2": ParagraphStyle("h2", keepWithNext=1, fontName="Serif-B", fontSize=10.5, leading=14, spaceBefore=8, spaceAfter=3, textColor=INK),
     "body": ParagraphStyle("body", fontName="Serif", fontSize=9.3, leading=13.2, alignment=TA_JUSTIFY, spaceAfter=5, textColor=INK),
-    "abs": ParagraphStyle("abs", fontName="Serif", fontSize=9, leading=12.8, alignment=TA_JUSTIFY, leftIndent=18,
-                          rightIndent=18, spaceAfter=8, textColor=INK),
+    "abs": ParagraphStyle("abs", fontName="Serif", fontSize=9, leading=12.8, alignment=TA_JUSTIFY, leftIndent=0,
+                          rightIndent=0, spaceAfter=8, textColor=INK),
     "bullet": ParagraphStyle("bullet", fontName="Serif", fontSize=9.3, leading=13, leftIndent=14, bulletIndent=4,
                              spaceAfter=2, textColor=INK, alignment=TA_JUSTIFY),
     "cap": ParagraphStyle("cap", fontName="Serif-I", fontSize=8.2, leading=11, textColor=INK2, spaceBefore=3, spaceAfter=10),
@@ -150,11 +149,6 @@ class Doc(BaseDocTemplate):
         canvas.restoreState()
 
 
-def _meta(backend):
-    p = cfg.RESULTS_DIR / backend / "meta.json"
-    return json.loads(p.read_text()) if p.exists() else None
-
-
 def build_paper(out: str | None = None) -> Path:
     data = collect()
     cfg.PAPER_DIR.mkdir(parents=True, exist_ok=True)
@@ -202,7 +196,7 @@ def _fig(path, width, caption):
     return KeepTogether([_img(path, width), P(caption, "cap")])
 
 
-def _findings(data, models, summ) -> list[str]:
+def _findings(data, models, summ) -> list[tuple[str, str]]:
     """Authors' reading of the results; every number is taken from the data, and a finding whose models
     are missing is left out."""
     by = {m["key"]: m for m in models}
@@ -220,7 +214,7 @@ def _findings(data, models, summ) -> list[str]:
         except (KeyError, TypeError, ValueError, ZeroDivisionError):
             return
         if t:
-            out.append(t)
+            out.append((fn.__name__, t))
 
     def agy_quota():
         cap_g = [S(m["key"])["cap_weekly"] for m in plan("agy")]
@@ -360,15 +354,12 @@ def _story(data, models, summ, pending, figs):
     effort_txt = " / ".join(efforts) or "default"
     benches = list(lock["benchmarks"])
     settings = {b: backend_settings(b) for b in ("agy", "claude", "codex")}
-    metas = {b: _meta(b) for b in settings}
-    present = [b for b in ("agy", "claude", "codex") if any(m["backend"] == b for m in models)]
     first = min((c["first"] for c in data["cells"].values() if c["first"]), default="")[:10]
     last = max((c["last"] for c in data["cells"].values() if c["last"]), default="")[:10]
     n_items = sum(v["n"] for v in lock["benchmarks"].values())
     pw = A4[0] - 40 * mm
     lw = landscape(A4)[0] - 28 * mm
     ranked = sorted([m for m in models if summ[k(m)]["acc_macro"] is not None], key=lambda m: -summ[k(m)]["acc_macro"])
-    cheap = sorted([m for m in models if summ[k(m)]["cost_per_correct"]], key=lambda m: summ[k(m)]["cost_per_correct"])
     roomy = sorted([m for m in models if summ[k(m)]["cap_weekly"]], key=lambda m: -summ[k(m)]["cap_weekly"])
 
     S = [P(TITLE, "title"), P(SUBTITLE, "sub"), P("<b>" + " · ".join(AUTHORS) + "</b>", "sub"),
@@ -428,7 +419,7 @@ def _story(data, models, summ, pending, figs):
           P("Table 1. Plans and models. API prices only serve to express each answer's cost in dollars; "
             "† = third-party source, to be checked against the provider's pricing page.", "cap")]
 
-    S += [P("2.2 Benchmarks", "h2"),
+    S += [PageBreak(), P("2.2 Benchmarks", "h2"),
           P(("This run used the first version of the suite: widely used benchmarks whose answers can be checked by code. "
              "Several of them proved close to saturation, which is why later runs use harder ones."
              if legacy else
@@ -444,7 +435,7 @@ def _story(data, models, summ, pending, figs):
              "process with a 60 s limit per program. " if legacy else
              "Table 2. Benchmarks. LiveCodeBench problems date from January–April 2025 (hard only), HMMT from February "
              "2026. Code runs in an isolated process (on macOS also sandboxed: no network, no writes outside a temporary "
-             "directory), 10 s per hidden test. ") + "All graders are validated by <font face='Mono'>bench.py selftest</font>.",
+             "directory), 10 s per hidden test."),
             "cap")]
 
     # 3
@@ -530,8 +521,10 @@ def _story(data, models, summ, pending, figs):
                "panel."),
           _fig(figs["quota"], pw, "Figure 2. Quota consumed per 10 tasks in the model's plan (hatched: ≈ or ~ values)."),
           _fig(figs["acc"], pw, "Figure 3. Accuracy per benchmark with 95% confidence intervals."),
-          _fig(figs["tok"], pw * 0.92, "Figure 4. Mean tokens per answer. Input includes the CLI's system prompt; "
-               "reasoning and visible output form the billed output.")]
+          KeepTogether([_img(figs["tok"], pw * 0.92),
+                        P("Figure 4. Mean tokens per answer. Input includes the CLI's system prompt; reasoning and "
+                          "visible output form the billed output.", "cap")]
+                       + [B(t) for name, t in _findings(data, models, summ) if name in ("agy_reasoning", "verbose")])]
     if data.get("has_times"):
         S.append(_fig(figs["times"], pw, "Figure 5. Time per task, one bar per task in suite order and grouped by "
                       "benchmark: blue = correct, red = wrong (a failed call counts as wrong). Each panel has its own "
@@ -655,7 +648,8 @@ def _story(data, models, summ, pending, figs):
             top = max(g["members"], key=lambda m: summ[k(m)]["acc_macro"] or 0)
             S.append(B(f"Within <b>{g['name']}</b> the most accurate model is {top['label']} "
                        f"({pct(summ[k(top)]['acc_macro'])})."))
-    S += [P("Key findings", "h2")] + [B(t) for t in _findings(data, models, summ)]
+    S += [P("Key findings", "h2")] + [B(t) for name, t in _findings(data, models, summ)
+                                      if name not in ("agy_reasoning", "verbose")]
     good = sorted([m for m in models if summ[k(m)]["cap_weekly"]], key=lambda m: -summ[k(m)]["cap_weekly"])
     if good:
         rows = [["Model", "Plan", "Mean<br/>acc.", "Correct per<br/>5-hour window", "Correct per<br/>week"]]
@@ -688,12 +682,4 @@ def _story(data, models, summ, pending, figs):
               "Some API prices come from third-party sources (†)."]:
         S.append(B(t))
 
-    S += [P("Appendix: reproducing and extending", "h1"),
-          P("Code, frozen data and raw results (full reply, tokens and score of every task) are in the repository:")]
-    for c in ["uv run bench.py selftest", "uv run bench.py run --backend agy|claude|codex", "uv run bench.py paper"]:
-        S.append(P(c, "code"))
-    vers = [f"{b} {metas[b]['runs'][-1]['cli_version']}" for b in present if metas.get(b)]
-    S.append(P(("CLI versions: " + "; ".join(vers) + ". " if vers else "") + "Pool fingerprints (SHA-256/16): "
-               + "; ".join(f"{bench_info(b)['label']} {lock['benchmarks'][b]['pool_sha256_16']}" for b in benches)
-               + f". Prices checked on {data['pricing'].get('checked_on', '?')}."))
     return S

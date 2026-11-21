@@ -437,16 +437,19 @@ def _story(data, models, summ, pending, figs, compact=True):
                 continue
             keys.append(m["backend"])
             rows.append([m["label"], plan_of(m["backend"]), pct(c["cached_share"], 0), pct(c["hit_rate"], 0),
-                         ktok(c["writes_per_answer"]) if c["writes_per_answer"] else "–", usd(c["cost"]),
+                         (ktok(c["writes_per_answer"]) if c["writes_per_answer"] else "0") if m["backend"] == "claude"
+                         else "not billed", usd(c["cost"]),
                          usd(c["cost_no_cache"]),
                          "–" if c["saving"] is None else
                          ("0%" if round(100 * c["saving"]) == 0 else f"{100 * c['saving']:+.0f}%".replace("-", "−"))])
         return [Spacer(1, 6), KeepTogether([table(rows, [32 * mm, 24 * mm, 20 * mm, 22 * mm, 20 * mm, 18 * mm, 18 * mm,
                                                          16 * mm], bold_first_col=True, groups=keys),
                 P(f"{T('t_cache')}. Caching as delivered by each ecosystem: share of input tokens served from cache, "
-                  "share of answers with any cache hit, tokens written to cache (billed at a premium by Anthropic), and "
+                  "share of answers with any cache hit, tokens written to cache, and "
                   "the API cost per answer as measured and with no caching at all. Saving = how much cheaper caching "
-                  "made each answer (negative: the cache writes cost more than the reads saved).", "cap")])]
+                  "made each answer (negative: the cache writes cost more than the reads saved). Only Anthropic bills cache "
+                  "writes (2× input for the 1-hour cache Claude Code uses; our costs match the total Claude Code "
+                  "reports); OpenAI and Google cache automatically and charge nothing for writing.", "cap")])]
 
     def benches_table():
         rows = [["Benchmark", "Area", "Tasks", "Scoring"]]

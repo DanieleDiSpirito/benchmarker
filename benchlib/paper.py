@@ -201,6 +201,96 @@ def _fig(path, width, caption):
     return KeepTogether([_img(path, width), P(caption, "cap")])
 
 
+def _findings(data, models, summ) -> list[str]:
+    """Authors' reading of the results; every number is taken from the data, and a finding whose models
+    are missing is left out."""
+    by = {m["key"]: m for m in models}
+    S = lambda key: summ[(by[key]["backend"], key)]
+    esc = {m["key"]: e for m, e in data.get("escalation") or []}
+    plan = lambda b: [m for m in models if m["backend"] == b]
+    span = lambda vals, f: f"{f(min(vals))}–{f(max(vals))}"
+    tok = lambda v: f"{v / 1000:.1f}k" if v >= 1000 else f"{v:.0f}"
+    per = lambda s, key: s["tokens"].get(key, 0) / max(1, s["attempts"])
+    out = []
+
+    def add(fn):
+        try:
+            t = fn()
+        except (KeyError, TypeError, ValueError, ZeroDivisionError):
+            return
+        if t:
+            out.append(t)
+
+    def agy_quota():
+        cap_g = [S(m["key"])["cap_weekly"] for m in plan("agy")]
+        cap_c = [S(m["key"])["cap_weekly"] for m in plan("claude")]
+        slow = [m for m in plan("agy") if S(m["key"])["lat_p50"] > 25]
+        rest = [S(m["key"])["lat_p50"] for m in models if m["backend"] != "agy"]
+        return (f"<b>Google AI Pro has the smallest weekly allowance and the slowest models.</b> Its models fit "
+                f"{span(cap_g, lambda v: num(v, 0))} tasks per week (Claude Pro {span(cap_c, lambda v: num(v, 0))}), and "
+                + " and ".join(m["label"] for m in slow) + f" take a median {span([S(m['key'])['lat_p50'] for m in slow], lambda v: num(v, 0))} s "
+                f"per answer, against {span(rest, lambda v: num(v, 0))} s for every Claude and GPT model.")
+
+    def argon():
+        s, e = S("gemini-4-argon"), esc["gemini-4-argon"]
+        best = max(esc.values(), key=lambda x: x["acc_cumulative"])
+        top = " — the highest cumulative accuracy of all models" if best is e else ""
+        return (f"<b>Gemini 4 Argon skips reasoning at medium effort.</b> It reasons in only {pct(s['thinking_rate'], 0)} "
+                f"of its answers ({tok(per(s, 'reasoning'))} reasoning tokens on average) and scores {pct(s['acc_macro'])}: "
+                f"its adaptive reasoning judges the tasks easier than they are and saves tokens at the price of wrong "
+                f"answers. At high effort it recovers {e['recovered']} of its {e['wrong']} errors and reaches "
+                f"{pct(e['acc_cumulative'])}{top}, but those {e['rerun']} re-runs (half of the suite) took "
+                f"{pct(e['quota']['weekly']['used'])} of the weekly limit.")
+
+    def agy_reasoning():
+        r = lambda b: [per(S(m["key"]), "reasoning") for m in plan(b) if S(m["key"])["thinking_rate"] > 0.5]
+        return (f"<b>Gemini models reason the most:</b> {span(r('agy'), tok)} reasoning tokens per answer, against "
+                f"{span(r('claude'), tok)} for Claude and {span(r('codex'), tok)} for GPT (counting the models that usually "
+                f"reason). "
+                f"This buys accuracy (Gemini 4 Neon is the most accurate model) but costs quota and time.")
+
+    def windows():
+        w = {b: 1 / data["k_ratio"][b][0] for b in ("agy", "claude", "codex") if (data["k_ratio"].get(b) or (None,))[0]}
+        pairs = [("claude-opus-5-5", "gpt-6.2-astra"), ("claude-sonnet-5-5", "gpt-6.2-sol"),
+                 ("claude-haiku-5-5", "gpt-6.1-terra")]
+        txt = "; ".join(f"{by[a]['label'].split()[1]} {num(S(a)['cap_5h'], 0)} vs {by[b]['label'].split()[1]} "
+                        f"{num(S(b)['cap_5h'], 0)}" for a, b in pairs)
+        return (f"<b>Claude Pro's week is far larger than its 5-hour window.</b> One weekly limit holds about "
+                f"{num(w['claude'], 0)} full 5-hour windows on Claude Pro, against {num(w['codex'], 0)} on ChatGPT Plus"
+                + (f" and {num(w['agy'], 1)} on Google AI Pro" if "agy" in w else "") +
+                f". Within one window Claude runs out first for the mid and small models but not for the flagship "
+                f"(tasks per 5 hours: {txt}). Weekly figures for both plans are derived (~, section 3).")
+
+    def luna():
+        s, e = S("gpt-6-luna"), esc["gpt-6-luna"]
+        return (f"<b>GPT-6 Luna is behind the other models</b> ({pct(s['acc_macro'])}, reasoning in "
+                f"{pct(s['thinking_rate'], 0)} of answers). It fits about {num(s['cap_weekly'], 0)} tasks a week, which "
+                f"suits simple tasks, e.g. as a sub-agent, rather than hard problems. At high effort it recovers "
+                f"{e['recovered']} of {e['wrong']} errors ({pct(e['acc_cumulative'])}): as with Argon, much of the gap is "
+                f"skipped reasoning.")
+
+    def astra():
+        s = S("gpt-6.2-astra")
+        caps = [x["cap_weekly"] for x in summ.values() if x["cap_weekly"]]
+        low = " — the lowest of all models" if s["cap_weekly"] <= min(caps) * 1.01 else ""
+        return (f"<b>GPT-6.2 Astra consumes too much for everyday use.</b> {usd(s['cost'] / s['attempts'])} per answer at "
+                f"API prices and {pct(10 * s['q_5h'] / s['attempts'], 1)} of the 5-hour window per 10 tasks: about "
+                f"{num(s['cap_5h'], 0)} tasks per window and {num(s['cap_weekly'], 0)} per week{low}. It is accurate "
+                f"({pct(s['acc_macro'])}) but sustainable only for occasional use, e.g. as an orchestrator that "
+                f"delegates to cheaper models.")
+
+    def verbose():
+        vis = {m["key"]: per(S(m["key"]), "output") - per(S(m["key"]), "reasoning") for m in models}
+        cl = [vis[m["key"]] for m in plan("claude") if m["key"] != "claude-haiku-5-5"]
+        others = [v for k, v in vis.items() if by[k]["backend"] != "claude"]
+        return (f"<b>Claude models are verbose.</b> Opus and Sonnet write {span(cl, tok)} visible output tokens per "
+                f"answer (output minus reasoning), against at most {tok(max(others))} for every Gemini and GPT model.")
+
+    for fn in (agy_quota, argon, agy_reasoning, windows, luna, astra, verbose):
+        add(fn)
+    return out
+
+
 def _q(s, w):
     return quota_text(s[f"q_{w}"], s[f"q_{w}_method"], s[f"q_{w}_bound"])
 
@@ -501,6 +591,7 @@ def _story(data, models, summ, pending, figs):
             top = max(g["members"], key=lambda m: summ[k(m)]["acc_macro"] or 0)
             S.append(B(f"Within <b>{g['name']}</b> the most accurate model is {top['label']} "
                        f"({pct(summ[k(top)]['acc_macro'])})."))
+    S += [P("Key findings", "h2")] + [B(t) for t in _findings(data, models, summ)]
     S.append(P("Read together, Table 3 and Figure 1 answer the student's question: the best plan is the one whose "
                "models stay accurate on the tasks that matter while leaving enough weekly room. The conclusions are "
                "indicative: samples are small (see the intervals), quotas depend on each account's plan and state, and "
@@ -515,6 +606,9 @@ def _story(data, models, summ, pending, figs):
               "The benchmark suite was selected by Claude (Anthropic), one of the model families under test, so it "
               "may favour tasks on which Claude models do well. In the near future we will repeat the study on "
               "suites selected by models outside the comparison, such as DeepSeek and Kimi.",
+              "Escalation re-runs only the answers that were wrong at medium, once: the cumulative accuracy assumes that "
+              "an answer correct at medium would stay correct at high, and a single re-run cannot separate the effect "
+              "of the higher effort from run-to-run variance (re-running the same tasks at medium would).",
               "Some API prices come from third-party sources (†)."]:
         S.append(B(t))
 

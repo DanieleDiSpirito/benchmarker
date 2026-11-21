@@ -373,8 +373,8 @@ def _story(data, models, summ, pending, figs):
                           "cap")])]
 
     S += [NextPageTemplate("portrait"), PageBreak(),
-          _fig(figs["value"], pw, "Figure 1. The student's trade-off: mean accuracy against API cost per answer (left) "
-               "and against the number of tasks a full weekly limit allows (right). Top right is best in the right panel."),
+          _fig(figs["value"], pw, "Figure 1. The student's trade-off: mean accuracy against API cost per answer (top) "
+               "and against the number of tasks a full weekly limit allows (bottom). Top right is best in the bottom panel."),
           _fig(figs["quota"], pw, "Figure 2. Quota consumed per 10 tasks in the model's plan (hatched: ≈ or ~ values)."),
           _fig(figs["acc"], pw, "Figure 3. Accuracy per benchmark with 95% confidence intervals."),
           _fig(figs["tok"], pw * 0.92, "Figure 4. Mean tokens per answer. Input includes the CLI's system prompt; "

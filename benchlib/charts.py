@@ -112,7 +112,7 @@ def fig_accuracy(data, models, path):
 def fig_value(data, models, summaries, path):
     """Accuracy against cost per answer (left) and against weekly capacity (right)."""
     colors = model_colors()
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 4.6), sharey=True)
+    fig, axes = plt.subplots(2, 1, figsize=(7.2, 8.4))
     panels = ((axes[0], lambda s: s["cost"] / s["attempts"] if s["cost"] is not None and s["attempts"] else None,
                "API-equivalent cost per answer (USD, log)", "Quality vs cost"),
               (axes[1], lambda s: s["cap_weekly"], "Tasks per full weekly limit (log)", "Quality vs usable quota"))
@@ -130,12 +130,13 @@ def fig_value(data, models, summaries, path):
             plotted += 1
         if plotted:
             ax.set_xscale("log")
-            ax.margins(x=0.4, y=0.15)
+            ax.margins(x=0.12, y=0.12)
         ax.set_xlabel(xlabel)
         ax.set_title(title, loc="left")
         pending.append((ax, labels))
-    axes[0].set_ylabel("Mean accuracy (%)")
-    fig.tight_layout(rect=(0, 0, 1, 0.93))
+    for ax in axes:
+        ax.set_ylabel("Mean accuracy (%)")
+    fig.tight_layout(rect=(0, 0, 1, 0.965), h_pad=2.5)
     plan_legend(fig, models)
     for ax, labels in pending:
         place_labels(ax, labels)

@@ -1,0 +1,136 @@
+{
+    "benchmark_name": "C-Exec-Equiv-v1",
+    "tier": 5,
+    "problems": [
+        {
+            "id": "tier5_001",
+            "algorithm_concept": "Coupled 16-bit LFSR with an S-box accumulator iterated 50 million times.",
+            "complexity_tags": [
+                "coupled_cycles",
+                "lfsr",
+                "sbox",
+                "state_machine"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n uint32_t lfsr=0xACE1u;\n uint32_t acc=0x1234u;\n uint32_t sbox[16]={3u,14u,1u,10u,4u,9u,15u,8u,2u,11u,6u,13u,5u,0u,12u,7u};\n uint32_t i;\n for(i=0u;i<50000000u;++i){\n  uint32_t bit=((lfsr>>0)^(lfsr>>2)^(lfsr>>3)^(lfsr>>5))&1u;\n  lfsr=(lfsr>>1)|(bit<<15);\n  uint32_t idx=(lfsr^acc)&15u;\n  acc=(acc+sbox[idx]+lfsr)&0xFFFFu;\n }\n printf(\"%u %u\\n\",(unsigned)acc,(unsigned)lfsr);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n uint32_t reg_8f=0xACE1u;\n uint32_t fn_z7=0x1234u;\n uint32_t tbl_19[16]={3u,14u,1u,10u,4u,9u,15u,8u,2u,11u,6u,13u,5u,0u,12u,7u};\n uint32_t op_k4=0u;\n while(op_k4<50000000u){\n  uint32_t bit=((reg_8f>>0)^(reg_8f>>2)^(reg_8f>>3)^(reg_8f>>5))&1u;\n  reg_8f=(reg_8f>>1)|(bit<<15);\n  uint32_t idx=(reg_8f^fn_z7)&15u;\n  fn_z7=(fn_z7+tbl_19[idx]+reg_8f)&0xFFFFu;\n  ++op_k4;\n }\n printf(\"%u %u\\n\",(unsigned)fn_z7,(unsigned)reg_8f);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void) {\n uint32_t r=0xACE1u,a=0x1234u,t[16]={3u,14u,1u,10u,4u,9u,15u,8u,2u,11u,6u,13u,5u,0u,12u,7u};\n uint32_t *p=t;\n uint32_t i=0u,b=0u,k=0u,st=17u;\n while(i<50000000u){\n  switch(st){\n   case 17u: b=((r>>0)^(r>>2)^(r>>3)^(r>>5))&1u; st=42u; break;\n   case 42u: r=(r>>1)|(b<<15); st=9u; break;\n   case 9u: k=(r^a)&15u; a=(a+k[p]+r)&0xFFFFu; st=17u; ++i; break;\n   default: st=17u; break;\n  }\n }\n printf(\"%u %u\\n\",(unsigned)a,(unsigned)r);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_002",
+            "algorithm_concept": "3x3 integer matrix squaring recurrence modulo prime 97 iterated 10 million times.",
+            "complexity_tags": [
+                "matrix_recurrence",
+                "mod_prime",
+                "coupled_state",
+                "cycle_structure"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t m[9]={1u,2u,3u,4u,5u,6u,7u,8u,9u};\n uint32_t n[9];\n uint32_t i,j,k,q;\n for(i=0u;i<10000000u;++i){\n  for(j=0u;j<3u;++j){\n   for(k=0u;k<3u;++k){\n    uint32_t s=0u;\n    for(q=0u;q<3u;++q){ s=(s+m[j*3u+q]*m[q*3u+k])%97u; }\n    n[j*3u+k]=s;\n   }\n  }\n  for(j=0u;j<9u;++j){ m[j]=n[j]; }\n }\n printf(\"%u %u %u\\n\",(unsigned)m[0],(unsigned)m[4],(unsigned)m[8]);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t mat_x[9]={1u,2u,3u,4u,5u,6u,7u,8u,9u};\n uint32_t tmp_y[9];\n uint32_t cnt_p=0u,row_q,col_r,inner_s;\n while(cnt_p<10000000u){\n  for(row_q=0u;row_q<3u;++row_q){\n   for(col_r=0u;col_r<3u;++col_r){\n    uint32_t sum_t=0u;\n    for(inner_s=0u;inner_s<3u;++inner_s){ sum_t=(sum_t+mat_x[row_q*3u+inner_s]*mat_x[inner_s*3u+col_r])%97u; }\n    tmp_y[row_q*3u+col_r]=sum_t;\n   }\n  }\n  for(row_q=0u;row_q<9u;++row_q){ mat_x[row_q]=tmp_y[row_q]; }\n  ++cnt_p;\n }\n printf(\"%u %u %u\\n\",(unsigned)mat_x[0],(unsigned)mat_x[4],(unsigned)mat_x[8]);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t m[9]={1u,2u,3u,4u,5u,6u,7u,8u,9u};\n uint32_t n[9];\n uint32_t *pm=m,*pn=n;\n uint32_t i=0u,j,k,q;\n while(i<10000000u){\n  for(j=0u;j<3u;++j){\n   for(k=0u;k<3u;++k){\n    uint32_t s=0u;\n    for(q=0u;q<3u;++q){ s=(s+pm[j*3u+q]*pm[q*3u+k])%97u; }\n    pn[j*3u+k]=s;\n   }\n  }\n  for(j=0u;j<9u;++j){ pm[j]=pn[j]; }\n  ++i;\n }\n printf(\"%u %u %u\\n\",(unsigned)pm[0],(unsigned)pm[4],(unsigned)pm[8]);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_003",
+            "algorithm_concept": "8-element pointer-aliased permutation cycle coupled to a modular accumulator over 25 million steps.",
+            "complexity_tags": [
+                "permutation_cycles",
+                "pointer_alias",
+                "modular_accumulator",
+                "coupled_cycles"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t perm[8]={2u,0u,3u,5u,7u,1u,6u,4u};\n uint32_t acc=0u,pos=0u,i;\n for(i=0u;i<25000000u;++i){\n  pos=perm[pos];\n  acc=(acc*31u+perm[pos]+i)&0xFFFFFFu;\n }\n printf(\"%u %u\\n\",(unsigned)acc,(unsigned)pos);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t map_z[8]={2u,0u,3u,5u,7u,1u,6u,4u};\n uint32_t acc_q=0u,ptr_w=0u,cnt_e=0u;\n while(cnt_e<25000000u){\n  ptr_w=map_z[ptr_w];\n  acc_q=(acc_q*31u+map_z[ptr_w]+cnt_e)&0xFFFFFFu;\n  ++cnt_e;\n }\n printf(\"%u %u\\n\",(unsigned)acc_q,(unsigned)ptr_w);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t t[8]={2u,0u,3u,5u,7u,1u,6u,4u};\n uint32_t *p=t;\n uint32_t a=0u,pos=0u,i=0u;\n while(i<25000000u){\n  pos=pos[p];\n  a=(a*31u+pos[p]+i)&0xFFFFFFu;\n  i=i+1u;\n }\n printf(\"%u %u\\n\",(unsigned)a,(unsigned)pos);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_004",
+            "algorithm_concept": "Piecewise affine 16-bit rotation map with two attractor branches iterated 10 million times.",
+            "complexity_tags": [
+                "affine_map",
+                "bit_rotation",
+                "attractor_cycle",
+                "coupled_state"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t s=0x1234u,acc=0u,i;\n for(i=0u;i<10000000u;++i){\n  if(s&1u){ s=((s>>1)^0xA5A5u)&0xFFFFu; acc=(acc+s+i)&0xFFFFFu; }\n  else { s=(s>>1)&0x7FFFu; acc=(acc^s)&0xFFFFFu; }\n  s=((s<<3)|(s>>13))&0xFFFFu;\n }\n printf(\"%u %u\\n\",(unsigned)s,(unsigned)acc);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t state_b=0x1234u,acc_r=0u,step_m=0u;\n while(step_m<10000000u){\n  if((state_b&1u)!=0u){ state_b=((state_b>>1)^0xA5A5u)&0xFFFFu; acc_r=(acc_r+state_b+step_m)&0xFFFFFu; }\n  else { state_b=(state_b>>1)&0x7FFFu; acc_r=(acc_r^state_b)&0xFFFFFu; }\n  state_b=((state_b<<3)|(state_b>>13))&0xFFFFu;\n  ++step_m;\n }\n printf(\"%u %u\\n\",(unsigned)state_b,(unsigned)acc_r);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t x=0x1234u,y=0u,n=0u;\n while(n<10000000u){\n  if((x&1u)!=0u){ x=((x>>1)^0xA5A5u)&0xFFFFu; y=(y+x+n)&0xFFFFFu; }\n  else { x=(x>>1)&0x7FFFu; y=(y^x)&0xFFFFFu; }\n  x=((x<<3)|(x>>13))&0xFFFFu;\n  n=n+1u;\n }\n printf(\"%u %u\\n\",(unsigned)x,(unsigned)y);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_005",
+            "algorithm_concept": "12-bit cellular automaton rule coupled to a popcount feedback accumulator over 40 million steps.",
+            "complexity_tags": [
+                "cellular_automaton",
+                "popcount",
+                "feedback_register",
+                "coupled_cycles"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t ca=0xABCu,acc=0u,i;\n for(i=0u;i<40000000u;++i){\n  uint32_t n=((ca<<1)^(ca>>1)^ca)&0xFFFu;\n  uint32_t x=n;\n  x=x-((x>>1)&0x555u);\n  x=(x&0x333u)+((x>>2)&0x333u);\n  x=(x+(x>>4))&0x0Fu;\n  acc=(acc+x+ca)&0xFFFFFu;\n  ca=n;\n }\n printf(\"%u %u\\n\",(unsigned)ca,(unsigned)acc);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t cell_q=0xABCu,sum_r=0u,cnt_w=0u;\n while(cnt_w<40000000u){\n  uint32_t next_z=((cell_q<<1)^(cell_q>>1)^cell_q)&0xFFFu;\n  uint32_t pop_v=next_z;\n  pop_v=pop_v-((pop_v>>1)&0x555u);\n  pop_v=(pop_v&0x333u)+((pop_v>>2)&0x333u);\n  pop_v=(pop_v+(pop_v>>4))&0x0Fu;\n  sum_r=(sum_r+pop_v+cell_q)&0xFFFFFu;\n  cell_q=next_z;\n  ++cnt_w;\n }\n printf(\"%u %u\\n\",(unsigned)cell_q,(unsigned)sum_r);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t c=0xABCu,a=0u,i=0u;\n while(i<40000000u){\n  uint32_t n=((c<<1)^(c>>1)^c)&0xFFFu;\n  uint32_t x=n;\n  x=x-((x>>1)&0x555u);\n  x=(x&0x333u)+((x>>2)&0x333u);\n  x=(x+(x>>4))&0x0Fu;\n  a=(a+x+c)&0xFFFFFu;\n  c=n;\n  i=i+1u;\n }\n printf(\"%u %u\\n\",(unsigned)c,(unsigned)a);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_006",
+            "algorithm_concept": "Struct-based virtual machine opcode dispatch with two coupled 16-bit registers over 20 million steps.",
+            "complexity_tags": [
+                "vm_opcodes",
+                "struct_state",
+                "dual_registers",
+                "state_machine"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nstruct VM { uint32_t a; uint32_t b; };\nint main(void){\n struct VM vm; vm.a=0x1234u; vm.b=0x5678u;\n uint32_t acc=0u,i;\n for(i=0u;i<20000000u;++i){\n  uint32_t op=(vm.a^vm.b)&3u;\n  switch(op){\n   case 0u: vm.a=(vm.a+vm.b)&0xFFFFu; break;\n   case 1u: vm.b=(vm.b^vm.a)&0xFFFFu; break;\n   case 2u: vm.a=((vm.a<<1)|(vm.a>>15))&0xFFFFu; break;\n   default: vm.b=(vm.b+0x9E37u)&0xFFFFu; break;\n  }\n  acc=(acc+vm.a+vm.b)&0xFFFFFFu;\n }\n printf(\"%u %u %u\\n\",(unsigned)acc,(unsigned)vm.a,(unsigned)vm.b);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nstruct mach_s { uint32_t reg_x; uint32_t reg_y; };\nint main(void){\n struct mach_s v; v.reg_x=0x1234u; v.reg_y=0x5678u;\n uint32_t sum_q=0u,cnt_t=0u;\n while(cnt_t<20000000u){\n  uint32_t op_v=(v.reg_x^v.reg_y)&3u;\n  switch(op_v){\n   case 0u: v.reg_x=(v.reg_x+v.reg_y)&0xFFFFu; break;\n   case 1u: v.reg_y=(v.reg_y^v.reg_x)&0xFFFFu; break;\n   case 2u: v.reg_x=((v.reg_x<<1)|(v.reg_x>>15))&0xFFFFu; break;\n   default: v.reg_y=(v.reg_y+0x9E37u)&0xFFFFu; break;\n  }\n  sum_q=(sum_q+v.reg_x+v.reg_y)&0xFFFFFFu;\n  ++cnt_t;\n }\n printf(\"%u %u %u\\n\",(unsigned)sum_q,(unsigned)v.reg_x,(unsigned)v.reg_y);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nstruct s_vm { uint32_t p; uint32_t q; };\nint main(void){\n struct s_vm z; z.p=0x1234u; z.q=0x5678u;\n uint32_t a=0u,i=0u;\n while(i<20000000u){\n  uint32_t op=(z.p^z.q)&3u;\n  switch(op){\n   case 0u: z.p=(z.p+z.q)&0xFFFFu; break;\n   case 1u: z.q=(z.q^z.p)&0xFFFFu; break;\n   case 2u: z.p=((z.p<<1)|(z.p>>15))&0xFFFFu; break;\n   default: z.q=(z.q+0x9E37u)&0xFFFFu; break;\n  }\n  a=(a+z.p+z.q)&0xFFFFFFu;\n  i=i+1u;\n }\n printf(\"%u %u %u\\n\",(unsigned)a,(unsigned)z.p,(unsigned)z.q);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_007",
+            "algorithm_concept": "Dual modular counters modulo 97 and 101 coupled by product accumulation over 30 million steps.",
+            "complexity_tags": [
+                "dual_clock",
+                "modular_counters",
+                "crt_style",
+                "coupled_state"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t a=0u,b=0u,acc=0u,i;\n for(i=0u;i<30000000u;++i){\n  a=(a+3u)%97u;\n  b=(b+5u)%101u;\n  acc=(acc+a*b+i)%1000003u;\n }\n printf(\"%u %u %u\\n\",(unsigned)a,(unsigned)b,(unsigned)acc);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t cnt_p=0u,cnt_q=0u,total_z=0u,step_m=0u;\n while(step_m<30000000u){\n  cnt_p=(cnt_p+3u)%97u;\n  cnt_q=(cnt_q+5u)%101u;\n  total_z=(total_z+cnt_p*cnt_q+step_m)%1000003u;\n  ++step_m;\n }\n printf(\"%u %u %u\\n\",(unsigned)cnt_p,(unsigned)cnt_q,(unsigned)total_z);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t x=0u,y=0u,s=0u,i=0u;\n while(i<30000000u){\n  x=(x+3u)%97u;\n  y=(y+5u)%101u;\n  s=(s+x*y+i)%1000003u;\n  i=i+1u;\n }\n printf(\"%u %u %u\\n\",(unsigned)x,(unsigned)y,(unsigned)s);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_008",
+            "algorithm_concept": "Closed-form Fibonacci-like recurrence modulo 1,000,000,007 with coupled accumulator over 10 million steps.",
+            "complexity_tags": [
+                "linear_recurrence",
+                "mod_large_prime",
+                "closed_form",
+                "coupled_accumulator"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t a=1u,b=2u,acc=0u,i;\n for(i=0u;i<10000000u;++i){\n  uint32_t c=(a+b)%1000000007u;\n  a=b;\n  b=c;\n  acc=(acc+a+b)&0xFFFFFFu;\n }\n printf(\"%u %u %u\\n\",(unsigned)a,(unsigned)b,(unsigned)acc);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t prev_x=1u,curr_y=2u,sum_z=0u,cnt_w=0u;\n while(cnt_w<10000000u){\n  uint32_t next_v=(prev_x+curr_y)%1000000007u;\n  prev_x=curr_y;\n  curr_y=next_v;\n  sum_z=(sum_z+prev_x+curr_y)&0xFFFFFFu;\n  ++cnt_w;\n }\n printf(\"%u %u %u\\n\",(unsigned)prev_x,(unsigned)curr_y,(unsigned)sum_z);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t p=1u,q=2u,a=0u,i=0u;\n while(i<10000000u){\n  uint32_t r=(p+q)%1000000007u;\n  p=q;\n  q=r;\n  a=(a+p+q)&0xFFFFFFu;\n  i=i+1u;\n }\n printf(\"%u %u %u\\n\",(unsigned)p,(unsigned)q,(unsigned)a);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_009",
+            "algorithm_concept": "Galois-field GF(256) polynomial stepping with irreducible 0x1D coupled to an accumulator over 10 million steps.",
+            "complexity_tags": [
+                "galois_field",
+                "polynomial_stepping",
+                "bit_operations",
+                "coupled_state"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t x=1u,acc=0u,i;\n for(i=0u;i<10000000u;++i){\n  uint32_t hi=x&0x80u;\n  x=(x<<1)&0xFFu;\n  if(hi){ x^=0x1Du; }\n  acc=(acc+x+(x>>1)+i)&0xFFFFFFu;\n }\n printf(\"%u %u\\n\",(unsigned)x,(unsigned)acc);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t field_v=1u,total_q=0u,step_r=0u;\n while(step_r<10000000u){\n  uint32_t high_b=field_v&0x80u;\n  field_v=(field_v<<1)&0xFFu;\n  if(high_b!=0u){ field_v^=0x1Du; }\n  total_q=(total_q+field_v+(field_v>>1)+step_r)&0xFFFFFFu;\n  ++step_r;\n }\n printf(\"%u %u\\n\",(unsigned)field_v,(unsigned)total_q);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t g=1u,a=0u,i=0u;\n while(i<10000000u){\n  uint32_t h=g&0x80u;\n  g=(g<<1)&0xFFu;\n  if(h!=0u){ g^=0x1Du; }\n  a=(a+g+(g>>1)+i)&0xFFFFFFu;\n  i=i+1u;\n }\n printf(\"%u %u\\n\",(unsigned)g,(unsigned)a);\n return 0;\n}\n"
+        },
+        {
+            "id": "tier5_010",
+            "algorithm_concept": "Bit-sliced 32-bit state machine with rotate-xor and folded accumulator over 10 million steps.",
+            "complexity_tags": [
+                "bit_sliced",
+                "rotate_xor",
+                "state_machine",
+                "coupled_accumulator"
+            ],
+            "classic_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t s=0xDEADBEEFu,acc=0u,i;\n for(i=0u;i<10000000u;++i){\n  s=(s<<5)|(s>>27);\n  s^=0x9E3779B9u;\n  acc=(acc+(s^(s>>16))+(i&0xFFu))&0xFFFFFFFFu;\n }\n printf(\"%u %u\\n\",(unsigned)s,(unsigned)acc);\n return 0;\n}\n",
+            "randomized_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t state_z=0xDEADBEEFu,sum_r=0u,cnt_m=0u;\n while(cnt_m<10000000u){\n  state_z=(state_z<<5)|(state_z>>27);\n  state_z^=0x9E3779B9u;\n  sum_r=(sum_r+(state_z^(state_z>>16))+(cnt_m&0xFFu))&0xFFFFFFFFu;\n  ++cnt_m;\n }\n printf(\"%u %u\\n\",(unsigned)state_z,(unsigned)sum_r);\n return 0;\n}\n",
+            "strange_c": "#include <stdio.h>\n#include <stdint.h>\nint main(void){\n uint32_t v=0xDEADBEEFu,a=0u,i=0u;\n while(i<10000000u){\n  v=(v<<5)|(v>>27);\n  v^=0x9E3779B9u;\n  a=(a+(v^(v>>16))+(i&0xFFu))&0xFFFFFFFFu;\n  i=i+1u;\n }\n printf(\"%u %u\\n\",(unsigned)v,(unsigned)a);\n return 0;\n}\n"
+        }
+    ]
+}

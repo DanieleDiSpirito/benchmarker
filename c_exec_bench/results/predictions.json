@@ -1241,6 +1241,1248 @@
           }
         }
       }
+    },
+    "codex:gpt-6.2-sol": {
+      "tier1_001": {
+        "tier": 1,
+        "algorithm_concept": "Bounded Collatz-like step counting from a fixed starting value.",
+        "ground_truth": "12 322",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "12 322",
+            "correct": true,
+            "elapsed_sec": 10.491,
+            "reasoning_summary": "After each of the 12 iterations, n is 82, 41, 124, 62, 31, 94, 47, 142, 71, 214, 107, and 322. The loop stops when step reaches 12.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "12 322",
+            "correct": true,
+            "elapsed_sec": 5.773,
+            "reasoning_summary": "The value follows 27 \u2192 82 \u2192 41 \u2192 124 \u2192 62 \u2192 31 \u2192 94 \u2192 47 \u2192 142 \u2192 71 \u2192 214 \u2192 107 \u2192 322. The loop stops when the counter reaches 12.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "12 322",
+            "correct": true,
+            "elapsed_sec": 5.966,
+            "reasoning_summary": "Odd values become 3a + 1 and even values are halved. After 12 updates, a is 322 and s reaches the stopping limit.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_002": {
+        "tier": 1,
+        "algorithm_concept": "Alternating-sign accumulation over a fixed integer range.",
+        "ground_truth": "-5",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "-5",
+            "correct": true,
+            "elapsed_sec": 5.038,
+            "reasoning_summary": "The sign alternates each iteration. Each of the five pairs, from 1 - 2 through 9 - 10, contributes -1.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "-5",
+            "correct": true,
+            "elapsed_sec": 6.313,
+            "reasoning_summary": "The loop alternately adds and subtracts the integers 1 through 10. Each of the five consecutive pairs contributes -1.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "-5",
+            "correct": true,
+            "elapsed_sec": 6.334,
+            "reasoning_summary": "The update increments u by 1 for either parity. The sign alternates, so the values 1 through 10 form five pairs that each sum to -1.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_003": {
+        "tier": 1,
+        "algorithm_concept": "Integer digit extraction and accumulation from a fixed number.",
+        "ground_truth": "12",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "12",
+            "correct": true,
+            "elapsed_sec": 5.035,
+            "reasoning_summary": "The loop extracts the digits 0, 1, 2, 0, and 9 in that order. Their sum is 12.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "12",
+            "correct": true,
+            "elapsed_sec": 4.563,
+            "reasoning_summary": "The loop adds the digits from right to left: 0 + 1 + 2 + 0 + 9 = 12. It stops when v_7a reaches 0.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "12",
+            "correct": true,
+            "elapsed_sec": 5.184,
+            "reasoning_summary": "The recursion sums the digits from right to left: 0 + 1 + 2 + 0 + 9 = 12.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_004": {
+        "tier": 1,
+        "algorithm_concept": "Conditional step counter using divisibility by 3 or 5.",
+        "ground_truth": "7",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "7",
+            "correct": true,
+            "elapsed_sec": 6.688,
+            "reasoning_summary": "The loop counts 3, 5, 6, 9, 10, 12, and 15. The OR condition counts 15 once.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "7",
+            "correct": true,
+            "elapsed_sec": 4.578,
+            "reasoning_summary": "The loop checks 1 through 15 and counts 3, 5, 6, 9, 10, 12, and 15, each once.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "7",
+            "correct": true,
+            "elapsed_sec": 8.216,
+            "reasoning_summary": "The update increases i by 1 for both odd and even values. The loop counts 3, 5, 6, 9, 10, 12, and 15.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_005": {
+        "tier": 1,
+        "algorithm_concept": "Piecewise linear state updates driven by loop-index parity.",
+        "ground_truth": "-14",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "-14",
+            "correct": true,
+            "elapsed_sec": 5.592,
+            "reasoning_summary": "Starting at 1, x becomes 3, 0, 1, -2, -3, -6, -11, and -14 over the eight iterations.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "-14",
+            "correct": true,
+            "elapsed_sec": 6.74,
+            "reasoning_summary": "For k_91 from 0 through 7, even iterations double v_7a and add 1, while odd iterations subtract 3. Its successive values are 3, 0, 1, -2, -3, -6, -11, and -14.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "-14",
+            "correct": true,
+            "elapsed_sec": 6.547,
+            "reasoning_summary": "The update increments i by 1 on every iteration. For i from 0 through 7, a becomes 3, 0, 1, -2, -3, -6, -11, and -14.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_006": {
+        "tier": 1,
+        "algorithm_concept": "Euclidean-style remainder steps with step and gcd output.",
+        "ground_truth": "21 3",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "21 3",
+            "correct": true,
+            "elapsed_sec": 5.112,
+            "reasoning_summary": "The successive remainders are 147, 21, and 0. The loop ends after three iterations with a = 21.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "21 3",
+            "correct": true,
+            "elapsed_sec": 6.627,
+            "reasoning_summary": "The remainders are 147, 21, and 0. After three iterations, v_7a is 21.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "21 3",
+            "correct": true,
+            "elapsed_sec": 5.39,
+            "reasoning_summary": "The successive (a, b) pairs are (462, 147), (147, 21), and (21, 0). Each update increments s once. The loop exits when b is zero.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_007": {
+        "tier": 1,
+        "algorithm_concept": "Base-conversion accumulation by counting set bits in a fixed integer.",
+        "ground_truth": "6",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "6",
+            "correct": true,
+            "elapsed_sec": 7.227,
+            "reasoning_summary": "The loop adds each binary digit of 12345 to bits. There are six 1s.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "6",
+            "correct": true,
+            "elapsed_sec": 6.576,
+            "reasoning_summary": "Each iteration adds the lowest binary bit and divides by two. The binary representation of 12345 has six set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "6",
+            "correct": true,
+            "elapsed_sec": 6.713,
+            "reasoning_summary": "Each iteration adds the lowest bit and shifts right. The binary representation of 12345 has six set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_008": {
+        "tier": 1,
+        "algorithm_concept": "Running minimum and maximum over a deterministic modular sequence.",
+        "ground_truth": "5 38",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "5 38",
+            "correct": true,
+            "elapsed_sec": 6.083,
+            "reasoning_summary": "The loop repeats 38, 19, 36, 5 three times. The minimum is 5 and the maximum is 38.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "5 38",
+            "correct": true,
+            "elapsed_sec": 6.554,
+            "reasoning_summary": "The values 38, 19, 36, and 5 repeat three times. The minimum stays at 5 and the maximum rises to 38.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "5 38",
+            "correct": true,
+            "elapsed_sec": 6.842,
+            "reasoning_summary": "The update increments i by 1 for either parity, so the loop runs 12 times. The values of x cycle through 38, 19, 36, and 5, giving a minimum of 5 and a maximum of 38.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_009": {
+        "tier": 1,
+        "algorithm_concept": "Threshold clamping during cumulative addition.",
+        "ground_truth": "20",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "20",
+            "correct": true,
+            "elapsed_sec": 6.015,
+            "reasoning_summary": "The sum reaches 15 at i = 5. At i = 6 it becomes 21 and is clamped to 20. Every remaining iteration clamps it back to 20.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "20",
+            "correct": true,
+            "elapsed_sec": 5.755,
+            "reasoning_summary": "The loop adds the integers 1 through 12, capping the total at 20 after each addition. The total reaches the cap at 6 and stays there.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "20",
+            "correct": true,
+            "elapsed_sec": 5.405,
+            "reasoning_summary": "The update increments i by 1 for both parities, so the loop adds 1 through 12. The sum reaches the cap of 20 at i = 6 and stays there.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier1_010": {
+        "tier": 1,
+        "algorithm_concept": "Modular step sequence selected by loop-index remainder.",
+        "ground_truth": "7",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "7",
+            "correct": true,
+            "elapsed_sec": 5.501,
+            "reasoning_summary": "Starting at 1, the four three-iteration cycles leave x at 2, 5, 14, and 7.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "7",
+            "correct": true,
+            "elapsed_sec": 5.489,
+            "reasoning_summary": "Each group of three iterations adds 5, multiplies by 3, and adds 1, reducing modulo 17 after each step. The four groups leave v_7a at 2, 5, 14, and 7.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "7",
+            "correct": true,
+            "elapsed_sec": 9.365,
+            "reasoning_summary": "The update increments i by 1 for both parities. After each group of three iterations, x is 2, 5, 14, then 7.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_001": {
+        "tier": 2,
+        "algorithm_concept": "Compute prefix sums by nested accumulation over prior elements.",
+        "ground_truth": "3\n4\n8\n9\n14\n23\n25\n31",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "3\n4\n8\n9\n14\n23\n25\n31",
+            "correct": true,
+            "elapsed_sec": 5.927,
+            "reasoning_summary": "For each index, prefix sums the input from index 0 through that index. show prints each sum followed by a newline.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "3\n4\n8\n9\n14\n23\n25\n31",
+            "correct": true,
+            "elapsed_sec": 4.918,
+            "reasoning_summary": "For each index, fn_p7 sums the input from index 0 through that index. fn_s4 prints the eight prefix sums, each followed by a newline.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "3\n4\n8\n9\n14\n23\n25\n31",
+            "correct": true,
+            "elapsed_sec": 9.31,
+            "reasoning_summary": "The function ad adds its arguments, and j[a] is equivalent to a[j]. The loop stores the inclusive prefix sums in o, and pr prints them in order, one per line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_002": {
+        "tier": 2,
+        "algorithm_concept": "Perform a selection-sort pass over an array and print the sorted order.",
+        "ground_truth": "1\n2\n3\n4\n6\n7\n8\n9",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "1\n2\n3\n4\n6\n7\n8\n9",
+            "correct": true,
+            "elapsed_sec": 5.0,
+            "reasoning_summary": "Selection sort moves the smallest remaining element into each successive position. The show function prints each sorted integer on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "1\n2\n3\n4\n6\n7\n8\n9",
+            "correct": true,
+            "elapsed_sec": 5.188,
+            "reasoning_summary": "Selection sort moves the smallest remaining element into each position. The print loop writes the eight sorted values, each followed by a newline.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "1\n2\n3\n4\n6\n7\n8\n9",
+            "correct": true,
+            "elapsed_sec": 8.435,
+            "reasoning_summary": "The state machine performs selection sort. Each pass finds the smallest remaining value and swaps it into position i. pr prints the sorted array one value per line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_003": {
+        "tier": 2,
+        "algorithm_concept": "Count array-value frequencies into fixed histogram buckets.",
+        "ground_truth": "2\n3\n2\n1",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "2\n3\n2\n1",
+            "correct": true,
+            "elapsed_sec": 6.101,
+            "reasoning_summary": "The histogram counts 2 zeros, 3 ones, 2 twos, and 1 three. show prints the four counts in order, each followed by a newline.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "2\n3\n2\n1",
+            "correct": true,
+            "elapsed_sec": 4.701,
+            "reasoning_summary": "The program counts occurrences of 0, 1, 2, and 3, then prints each count on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "2\n3\n2\n1",
+            "correct": true,
+            "elapsed_sec": 5.914,
+            "reasoning_summary": "i[a] is a[i]. The loop counts 2 zeros, 3 ones, 2 twos, and 1 three. pr prints the counts in that order.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_004": {
+        "tier": 2,
+        "algorithm_concept": "Generate run-length counts for consecutive equal values.",
+        "ground_truth": "2\n3\n1\n4",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "2\n3\n1\n4",
+            "correct": true,
+            "elapsed_sec": 6.109,
+            "reasoning_summary": "The consecutive runs of 1, 2, 3, and 4 have lengths 2, 3, 1, and 4. rle returns 4, and show prints each length on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "2\n3\n1\n4",
+            "correct": true,
+            "elapsed_sec": 5.489,
+            "reasoning_summary": "The consecutive runs of 1, 2, 3, and 4 have lengths 2, 3, 1, and 4. The program prints each length on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "2\n3\n1\n4",
+            "correct": true,
+            "elapsed_sec": 6.103,
+            "reasoning_summary": "The loop counts consecutive equal values. The runs of 1, 2, 3, and 4 have lengths 2, 3, 1, and 4, which pr prints in order.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_005": {
+        "tier": 2,
+        "algorithm_concept": "Accumulate pairwise differences for each starting index.",
+        "ground_truth": "-1\n20\n-22\n18\n-6\n6\n-4\n0",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "-1\n20\n-22\n18\n-6\n6\n-4\n0",
+            "correct": true,
+            "elapsed_sec": 7.745,
+            "reasoning_summary": "For each index, subtract its value times the number of later elements from the sum of those later elements. The last index has no later elements, so its result is 0.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "-1\n20\n-22\n18\n-6\n6\n-4\n0",
+            "correct": true,
+            "elapsed_sec": 7.871,
+            "reasoning_summary": "For each index, subtract the current value times the number of later elements from the sum of those later elements. The last index has no later elements, so its result is 0.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "-1\n20\n-22\n18\n-6\n6\n-4\n0",
+            "correct": true,
+            "elapsed_sec": 8.897,
+            "reasoning_summary": "In C, j[a] equals a[j]. For each i, the loop sums a[j] - a[i] over all later indices. The last sum is empty, so it is 0. The printer emits each sum on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_006": {
+        "tier": 2,
+        "algorithm_concept": "Evaluate a polynomial with Horner's method for each input value.",
+        "ground_truth": "15\n73\n269\n5\n741\n1675",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "15\n73\n269\n5\n741\n1675",
+            "correct": true,
+            "elapsed_sec": 8.526,
+            "reasoning_summary": "For each x, Horner\u2019s method starts at 0 and multiplies by x before adding each coefficient. The results are printed in input order, one per line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "15\n73\n269\n5\n741\n1675",
+            "correct": true,
+            "elapsed_sec": 8.246,
+            "reasoning_summary": "Horner evaluation at 1, 2, 3, 0, 4, and 5 gives 15, 73, 269, 5, 741, and 1675. Each value is printed with a newline.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "15\n73\n269\n5\n741\n1675",
+            "correct": true,
+            "elapsed_sec": 11.893,
+            "reasoning_summary": "The reversed subscripts i[x], j[c], and k[p] are equivalent to x[i], c[j], and p[k]. For each multiplier, the loop starts at zero and applies v = v * multiplier + coefficient for all five coefficients. pr prints the six results in order.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_007": {
+        "tier": 2,
+        "algorithm_concept": "Compute rolling-window polynomial hashes over an array.",
+        "ground_truth": "1026\n2019\n3012\n4005\n4998\n5991",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "1026\n2019\n3012\n4005\n4998\n5991",
+            "correct": true,
+            "elapsed_sec": 7.477,
+            "reasoning_summary": "The six windows start at values 1 through 6. The first hash is 1026, and each successive hash increases by 31\u00b2 + 31 + 1 = 993. Each hash is printed on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "1026\n2019\n3012\n4005\n4998\n5991",
+            "correct": true,
+            "elapsed_sec": 6.035,
+            "reasoning_summary": "The six length-three windows produce 31\u00b2a + 31b + c. The first value is 1026, and each successive window adds 993. Each printf ends with a newline.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "1026\n2019\n3012\n4005\n4998\n5991",
+            "correct": true,
+            "elapsed_sec": 7.753,
+            "reasoning_summary": "For each i from 0 through 5, the loop resets h and folds three consecutive array values into it using h = 31*h + a[j]. pr prints the six stored results in order.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_008": {
+        "tier": 2,
+        "algorithm_concept": "Rotate an array cyclically right by three positions using repeated shifts.",
+        "ground_truth": "6\n7\n8\n1\n2\n3\n4\n5",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "6\n7\n8\n1\n2\n3\n4\n5",
+            "correct": true,
+            "elapsed_sec": 5.673,
+            "reasoning_summary": "Each rotation moves the last element to the front. After three rotations, the array is 6, 7, 8, 1, 2, 3, 4, 5. The program prints each element on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "6\n7\n8\n1\n2\n3\n4\n5",
+            "correct": true,
+            "elapsed_sec": 7.769,
+            "reasoning_summary": "Three right rotations move 6, 7, and 8 to the front in that order. The program prints each element on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "6\n7\n8\n1\n2\n3\n4\n5",
+            "correct": true,
+            "elapsed_sec": 5.401,
+            "reasoning_summary": "The loop rotates the array one position to the right three times. Then pr prints each element on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_009": {
+        "tier": 2,
+        "algorithm_concept": "Reverse a subarray in place using symmetric swaps.",
+        "ground_truth": "0\n1\n7\n6\n5\n4\n3\n2\n8\n9",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "0\n1\n7\n6\n5\n4\n3\n2\n8\n9",
+            "correct": true,
+            "elapsed_sec": 5.807,
+            "reasoning_summary": "rev swaps indices 2 and 7, 3 and 6, and 4 and 5. show prints each element on its own line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "0\n1\n7\n6\n5\n4\n3\n2\n8\n9",
+            "correct": true,
+            "elapsed_sec": 5.927,
+            "reasoning_summary": "The reversal swaps index pairs (2, 7), (3, 6), and (4, 5). The print loop then prints all ten elements, one per line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "0\n1\n7\n6\n5\n4\n3\n2\n8\n9",
+            "correct": true,
+            "elapsed_sec": 5.189,
+            "reasoning_summary": "The midpoint is 4. The loop swaps indices 2 and 7, 3 and 6, then 4 and 5. The print loop outputs all ten elements, one per line.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier2_010": {
+        "tier": 2,
+        "algorithm_concept": "Count pairs with sum at most each target using two-pointer convergence.",
+        "ground_truth": "1\n4\n9\n13\n15\n15",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "1\n4\n9\n13\n15\n15",
+            "correct": true,
+            "elapsed_sec": 9.312,
+            "reasoning_summary": "For each threshold, a qualifying endpoint sum adds all r - l pairs with the current left endpoint. The six counts are 1, 4, 9, 13, 15, and 15.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "1\n4\n9\n13\n15\n15",
+            "correct": true,
+            "elapsed_sec": 8.517,
+            "reasoning_summary": "For each threshold, a qualifying sum adds all pairs from the current left index through the right bound. Otherwise, the right bound moves left. The six counts are 1, 4, 9, 13, 15, and 15.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "1\n4\n9\n13\n15\n15",
+            "correct": true,
+            "elapsed_sec": 11.203,
+            "reasoning_summary": "If the endpoint sum meets the threshold, all r - l pairs with the current left endpoint qualify. Otherwise, the right endpoint cannot form a qualifying pair in the remaining range. The thresholds 3, 5, 7, 9, 11, and 13 yield counts of 1, 4, 9, 13, 15, and 15.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_001": {
+        "tier": 3,
+        "algorithm_concept": "Recursive heap-index traversal on a flat array with pointer arithmetic and bitwise checksum.",
+        "ground_truth": "236 144",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "236 144",
+            "correct": true,
+            "elapsed_sec": 10.18,
+            "reasoning_summary": "The recursive heap traversal visits all 15 entries, whose sum is 236. Grouping the XOR terms by shift count gives 16 ^ 32 ^ 64 ^ 224 = 144.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "236 144",
+            "correct": true,
+            "elapsed_sec": 8.962,
+            "reasoning_summary": "The recursive traversal visits all 15 array entries once and sums them to 236. XORing the shifted entries gives 144.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "236 144",
+            "correct": true,
+            "elapsed_sec": 9.024,
+            "reasoning_summary": "i[a] equals a[i]. The recursive traversal sums all 15 entries to 236. The state loop XORs the shifted entries to produce 144.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_002": {
+        "tier": 3,
+        "algorithm_concept": "Four-round Feistel-like bit-mixing network over 16-bit halves with key injection.",
+        "ground_truth": "0xc668b691 15",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "0xc668b691 15",
+            "correct": true,
+            "elapsed_sec": 16.113,
+            "reasoning_summary": "The four mix results are 0x04bb29fb, 0xa5416dff, 0x535f5eae, and 0x34cdac3b. Their XOR is 0xc668b691 and has 15 set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "0xc668b691 15",
+            "correct": true,
+            "elapsed_sec": 11.636,
+            "reasoning_summary": "XORing the four inputs gives halves 0x0dca and 0x5f91. Each round is XOR-linear, and the four round-key nibbles XOR to zero in each round. The successive right halves are 0xb2e8, 0x3a40, 0xc668, and 0xb691. The final word has 15 set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "0xc668b691 15",
+            "correct": true,
+            "elapsed_sec": 11.154,
+            "reasoning_summary": "i[v] is v[i]. XORing the four executions cancels the key nibbles. The combined starting halves are 0x0dca and 0x5f91, and the four rounds yield 0xc668b691, which has 15 set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_003": {
+        "tier": 3,
+        "algorithm_concept": "Diagonal walk over a 4x4 matrix using flat pointer arithmetic and XOR checksum.",
+        "ground_truth": "112 124",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "112 124",
+            "correct": true,
+            "elapsed_sec": 9.688,
+            "reasoning_summary": "On a typical run with flat traversal, the row sums are 22, 42, 30, and 18, and the shifted XOR is 124. C11 leaves the output undefined because p is used to access elements beyond the first row.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "112 124",
+            "correct": true,
+            "elapsed_sec": 8.884,
+            "reasoning_summary": "With flat row-major traversal, the row sums are 22, 42, 30, and 18, totaling 112. The shifted XOR is 124. C11 leaves the output undefined because pp is used to access elements beyond the first row.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "112 124",
+            "correct": true,
+            "elapsed_sec": 10.171,
+            "reasoning_summary": "With contiguous row-major traversal, the diagonals visit all 16 entries once and sum to 112. The shifted XOR is 124. C11 does not guarantee this output because p is indexed beyond the first row.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_004": {
+        "tier": 3,
+        "algorithm_concept": "Linked-index array permutation following with visited tracking and XOR accumulation.",
+        "ground_truth": "39 250",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "39 250",
+            "correct": true,
+            "elapsed_sec": 7.271,
+            "reasoning_summary": "The walk visits indices 0 and 3 before returning to 0, so 11 XOR 44 gives 39. The shifted low nibbles sum to 250.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "39 250",
+            "correct": true,
+            "elapsed_sec": 7.729,
+            "reasoning_summary": "The traversal visits indices 0 and 3 before returning to 0, giving 11 XOR 44 = 39. The shifted low nibbles sum to 250.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "39 250",
+            "correct": true,
+            "elapsed_sec": 6.648,
+            "reasoning_summary": "The traversal visits indices 0 and 3 before returning to 0. Their values give 11 XOR 44 = 39. The weighted sum of the low four bits is 250.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_005": {
+        "tier": 3,
+        "algorithm_concept": "Bitboard cellular automaton update for six generations with popcount checksum.",
+        "ground_truth": "0x5ad8 8",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "0x5ad8 8",
+            "correct": true,
+            "elapsed_sec": 8.709,
+            "reasoning_summary": "The six states are 0xA353, 0xB45C, 0x86CA, 0xC83B, 0x3C50, and 0x5AD8. The final state has 8 set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "0x5ad8 8",
+            "correct": true,
+            "elapsed_sec": 9.743,
+            "reasoning_summary": "The six updates produce 0xA353, 0xB45C, 0x86CA, 0xC83B, 0x3C50, and 0x5AD8. The final value has 8 set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "0x5ad8 8",
+            "correct": true,
+            "elapsed_sec": 9.049,
+            "reasoning_summary": "The six updates yield A353, B45C, 86CA, C83B, 3C50, and 5AD8. The final value has 8 set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_006": {
+        "tier": 3,
+        "algorithm_concept": "Recursive divide-and-conquer array reduction using bitwise addition identity.",
+        "ground_truth": "289 497",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "289 497",
+            "correct": true,
+            "elapsed_sec": 7.802,
+            "reasoning_summary": "The array contains 5, 16, 27, 38, 49, 60, 7, 18, 29, and 40. Each recursive combine adds its two operands, giving 289. XORing the shifted elements gives 497.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "289 497",
+            "correct": true,
+            "elapsed_sec": 8.905,
+            "reasoning_summary": "The recursive combine adds its two inputs, so rr is the array sum, 289. XORing the shifted elements gives tt = 0x1F1 = 497.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "289 497",
+            "correct": true,
+            "elapsed_sec": 8.151,
+            "reasoning_summary": "The recursive expression adds its two operands, so the array sums to 289. XORing the shifted elements gives 0x1F1, or 497.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_007": {
+        "tier": 3,
+        "algorithm_concept": "Struct-based stack machine interpreter executing push and XOR-add operations.",
+        "ground_truth": "12",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "12",
+            "correct": true,
+            "elapsed_sec": 5.854,
+            "reasoning_summary": "The loop pushes 5 and 7, then pops them and pushes (7 ^ 5) + ((7 & 5) << 1) = 2 + 10 = 12. Opcode 0 is ignored, and the final pop returns 12.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "12",
+            "correct": true,
+            "elapsed_sec": 6.033,
+            "reasoning_summary": "The loop pushes 5 and 7, then pops them and pushes (7 ^ 5) + ((7 & 5) << 1) = 2 + 10 = 12. Opcode 0 does nothing, and the final pop returns 12.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "12",
+            "correct": true,
+            "elapsed_sec": 6.453,
+            "reasoning_summary": "The first two push instructions place 5 and 7 on the stack. The add instruction pops both and pushes (7 ^ 5) + ((7 & 5) << 1) = 12. The final pop returns 12.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_008": {
+        "tier": 3,
+        "algorithm_concept": "CRC-style polynomial bit shift register over 16-bit data with popcount checksum.",
+        "ground_truth": "0x13c6 7",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "0x13c6 7",
+            "correct": true,
+            "elapsed_sec": 9.678,
+            "reasoning_summary": "After 16 CRC steps, the register is 0x13c6. Its four hex digits contain 1, 2, 2, and 2 set bits, for a total of 7.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "0x13c6 7",
+            "correct": true,
+            "elapsed_sec": 9.766,
+            "reasoning_summary": "The register is 0x0673 after 8 iterations and 0x13c6 after 16. The final value has 7 set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "0x13c6 7",
+            "correct": true,
+            "elapsed_sec": 10.818,
+            "reasoning_summary": "After 8 iterations r is 0x0673. After 16 it is 0x13c6, whose four hex digits contain 1, 2, 2, and 2 set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_009": {
+        "tier": 3,
+        "algorithm_concept": "Pointer-strided matrix transpose checksum over a 3x4 matrix.",
+        "ground_truth": "198 135",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "198 135",
+            "correct": true,
+            "elapsed_sec": 7.925,
+            "reasoning_summary": "Treating the rows as contiguous, their sums are 38, 66, and 94, and the shifted values XOR to 135. The pointer arithmetic crosses row boundaries, so C11 does not guarantee this output.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "198 135",
+            "correct": true,
+            "elapsed_sec": 7.609,
+            "reasoning_summary": "On a typical run that reads the rows as contiguous, their sums are 38, 66, and 94, and the shifted XOR is 135. The pointer arithmetic crosses row boundaries, so C11 does not guarantee this output.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "198 135",
+            "correct": true,
+            "elapsed_sec": 9.87,
+            "reasoning_summary": "On a typical run, linear indexing visits all 12 values, which sum to 198. The shifted values XOR to 135. C11 leaves the output undefined because p is used to access elements beyond the first row.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier3_010": {
+        "tier": 3,
+        "algorithm_concept": "Bounded mutual recursion between two functions with bitwise mixing.",
+        "ground_truth": "68",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "68",
+            "correct": true,
+            "elapsed_sec": 8.02,
+            "reasoning_summary": "For i = 0 through 7, f(i) ^ g(i) yields 3, 0, 2, 9, 5, 10, 24, and 15. These sum to 68.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "68",
+            "correct": true,
+            "elapsed_sec": 7.187,
+            "reasoning_summary": "For ii = 0 through 7, fn_a(ii) ^ fn_b(ii) yields 3, 0, 2, 9, 5, 10, 24, and 15. Their sum is 68.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "68",
+            "correct": true,
+            "elapsed_sec": 8.77,
+            "reasoning_summary": "For i = 0 through 7, f(i) ^ g(i) gives 3, 0, 2, 9, 5, 10, 24, and 15. Their sum is 68.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_001": {
+        "tier": 4,
+        "algorithm_concept": "16-bit LFSR with 500000 steps and a byte-pattern counter.",
+        "ground_truth": "11473 1944",
+        "variants": {
+          "classic_c": {
+            "status": "timeout",
+            "predicted": "",
+            "correct": false,
+            "elapsed_sec": 180,
+            "reasoning_summary": "",
+            "stderr": "TimeoutExpired"
+          },
+          "randomized_c": {
+            "status": "timeout",
+            "predicted": "",
+            "correct": false,
+            "elapsed_sec": 180,
+            "reasoning_summary": "",
+            "stderr": "TimeoutExpired"
+          },
+          "strange_c": {
+            "status": "timeout",
+            "predicted": "",
+            "correct": false,
+            "elapsed_sec": 180,
+            "reasoning_summary": "",
+            "stderr": "TimeoutExpired"
+          }
+        }
+      },
+      "tier4_002": {
+        "tier": 4,
+        "algorithm_concept": "Permutation iteration on an 8-element array for 100000 steps.",
+        "ground_truth": "0 1 2 3 4 5 6 7",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "0 1 2 3 4 5 6 7",
+            "correct": true,
+            "elapsed_sec": 7.07,
+            "reasoning_summary": "Each step applies the permutation to the indices. Its cycle lengths are 1, 2, and 4, all of which divide 100000, so the array returns to its initial order.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "0 1 2 3 4 5 6 7",
+            "correct": true,
+            "elapsed_sec": 6.73,
+            "reasoning_summary": "The permutation has a 2-cycle (0 3), a 4-cycle (2 7 4 5), and fixed points 1 and 6. Since 100000 is divisible by 4, the table returns to its initial order.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "0 1 2 3 4 5 6 7",
+            "correct": true,
+            "elapsed_sec": 6.576,
+            "reasoning_summary": "Each iteration applies the permutation with cycles (0 3) and (2 7 4 5), fixing indices 1 and 6. Since 100000 is divisible by 4, the array returns to its initial order.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_003": {
+        "tier": 4,
+        "algorithm_concept": "Affine congruential map modulo 101 converging toward a fixed cycle.",
+        "ground_truth": "5 10000",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "5 10000",
+            "correct": true,
+            "elapsed_sec": 11.887,
+            "reasoning_summary": "The state cycles through 7, 41, 13, 42, 30, 28, 95, 22, 94, and 5. Each 10-step cycle hits 42 once, and 100000 steps complete 10000 cycles.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "5 10000",
+            "correct": true,
+            "elapsed_sec": 9.948,
+            "reasoning_summary": "The register returns to 5 every 10 iterations and hits 42 once per cycle. The loop completes 10,000 cycles.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "5 10000",
+            "correct": true,
+            "elapsed_sec": 9.706,
+            "reasoning_summary": "The register cycles through 7, 41, 13, 42, 30, 28, 95, 22, 94, and 5. Each of the 10,000 cycles hits 42 once and ends at 5.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_004": {
+        "tier": 4,
+        "algorithm_concept": "12-bit ring cellular automaton with XOR neighborhood over 250000 generations.",
+        "ground_truth": "0x123 4",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "0x123 4",
+            "correct": true,
+            "elapsed_sec": 8.278,
+            "reasoning_summary": "Four updates XOR the two rotations by four bits in opposite directions. Since 0x231 XOR 0x312 equals 0x123, each four-step block restores the initial state, which has four set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "0x33 4",
+            "correct": false,
+            "elapsed_sec": 8.644,
+            "reasoning_summary": "Each iteration XORs the two one-bit rotations. Four iterations XOR the four-bit and eight-bit rotations, and applying that four-step map twice gives the same map. Since 250000 is divisible by four, the final register is 0x221 XOR 0x212 = 0x33, with four set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "0x123 4",
+            "correct": true,
+            "elapsed_sec": 10.709,
+            "reasoning_summary": "Let T be the XOR of the two one-bit rotations. T^4 is the XOR of the two four-bit rotations, and T^8 equals T^4 on the 12-bit ring. Since 250000 is a positive multiple of 4, the final state is T^4(0x123) = 0x231 XOR 0x312 = 0x123, which has four set bits.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_005": {
+        "tier": 4,
+        "algorithm_concept": "Fibonacci recurrence modulo 1000 over one million steps.",
+        "ground_truth": "875 501",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "875 501",
+            "correct": true,
+            "elapsed_sec": 15.861,
+            "reasoning_summary": "After n iterations, (a,b) is (F_n,F_{n+1}) modulo 1000. Fast doubling gives (0,1) at n=1500, so the state repeats every 1500 iterations. The remainder of 1000000 modulo 1500 is 1000, where the pair is (875,501).",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "875 501",
+            "correct": true,
+            "elapsed_sec": 14.799,
+            "reasoning_summary": "After k iterations, the registers hold F(k) and F(k+1) modulo 1000. The pairs repeat every 1500 iterations, so iteration 1000000 has the same pair as iteration 1000. Fibonacci doubling gives the residues 875 and 501.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "128 505",
+            "correct": false,
+            "elapsed_sec": 16.962,
+            "reasoning_summary": "The bitwise expression equals x + y, so each update advances the Fibonacci pair modulo 1000. The pair repeats every 1500 updates, and 1000000 leaves remainder 1000. Fast doubling gives residues 128 and 505 at indices 1000 and 1001.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_006": {
+        "tier": 4,
+        "algorithm_concept": "Self-modifying index walk on a 16-element table entering a short cycle.",
+        "ground_truth": "6 31250",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "6 31250",
+            "correct": true,
+            "elapsed_sec": 23.162,
+            "reasoning_summary": "Viewed as a rotor walk that increments before departure, the initial pointers form a single cycle containing 0, with every vertex leading to that cycle. Each 256-step round traverses every directed edge once, returning to the initial state and adding 16 visits to 7. After 1953 rounds, the remaining 32 steps add two visits to 7 and end at 6.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "6 31250",
+            "correct": true,
+            "elapsed_sec": 19.443,
+            "reasoning_summary": "Viewed as incrementing each rotor before departure, the initial rotors form a single cycle containing 0, with all other vertices leading into it. Each 256-step tour returns to the initial state and visits 7 exactly 16 times. After 1,953 tours, the remaining 32 steps visit 7 twice and end at 6.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "6 31250",
+            "correct": true,
+            "elapsed_sec": 19.429,
+            "reasoning_summary": "The initial last-used pointers form one cycle containing 0, with all other vertices feeding into it. Each 256-step Euler tour restores the state and visits 7 sixteen times. After 1,953 tours, the remaining 32 steps visit 7 twice and end at 6.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_007": {
+        "tier": 4,
+        "algorithm_concept": "Alternating XOR and 8-bit rotate state machine over 300000 steps.",
+        "ground_truth": "90 0",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "90 0",
+            "correct": true,
+            "elapsed_sec": 11.339,
+            "reasoning_summary": "The state returns to 0x5A every 16 steps, and none of those steps reaches 0x96. The loop completes 18,750 full cycles, leaving the state at 90 and hits at zero.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "90 0",
+            "correct": true,
+            "elapsed_sec": 11.447,
+            "reasoning_summary": "The register returns to 0x5A every eight XOR-and-rotate pairs. Neither operation produces 0x96 during the cycle. The 150,000 pairs complete 18,750 cycles, leaving the register at 90 and the counter at 0.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "90 0",
+            "correct": true,
+            "elapsed_sec": 8.087,
+            "reasoning_summary": "The state returns to 0x5A every eight XOR-and-rotate pairs, with no intermediate value equal to 0x96. The 150,000 pairs complete 18,750 cycles, so the final state is 90 and the count is 0.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_008": {
+        "tier": 4,
+        "algorithm_concept": "Subtractive GCD invariant loop with large initial offsets.",
+        "ground_truth": "64 64",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "64 64",
+            "correct": true,
+            "elapsed_sec": 5.879,
+            "reasoning_summary": "Eight subtractions reduce a to 12352. Nine subtractions reduce b to 12288. The next subtraction reduces a to 64, and 191 more reduce b to 64, so the loop breaks.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "64 64",
+            "correct": true,
+            "elapsed_sec": 6.402,
+            "reasoning_summary": "Eight subtractions reduce the first value to 12352. Nine more reduce the second to 12288. Their difference is 64, and repeated subtraction reduces both values to 64.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "64 64",
+            "correct": true,
+            "elapsed_sec": 7.434,
+            "reasoning_summary": "After 18 subtractions, x is 64 and y is 12288. Another 191 subtractions reduce y to 64, so the loop exits at i = 209.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_009": {
+        "tier": 4,
+        "algorithm_concept": "Three-bucket deterministic transfer preserving total mass over 50000 steps.",
+        "ground_truth": "7 21 32 60",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "7 21 32 60",
+            "correct": true,
+            "elapsed_sec": 8.016,
+            "reasoning_summary": "After two iterations the array is (7, 21, 32). This state repeats every three iterations, and 50000 leaves remainder 2 modulo 3. The sum stays 60.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "7 21 32 60",
+            "correct": true,
+            "elapsed_sec": 9.872,
+            "reasoning_summary": "After two iterations the table is (7, 21, 32). From there it repeats every three iterations, and 50000 leaves remainder 2 when divided by 3. Each update preserves the sum of 60.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "7 21 32 60",
+            "correct": true,
+            "elapsed_sec": 7.124,
+            "reasoning_summary": "After two updates, t is (7, 21, 32). The next three updates return it to that state. Since 50000 leaves remainder 2 modulo 3, the final sum is 60.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      },
+      "tier4_010": {
+        "tier": 4,
+        "algorithm_concept": "Polynomial rolling hash cycle modulo 1009 over 200000 steps.",
+        "ground_truth": "749 0",
+        "variants": {
+          "classic_c": {
+            "status": "ok",
+            "predicted": "749 0",
+            "correct": true,
+            "elapsed_sec": 66.029,
+            "reasoning_summary": "Each seven-step block maps h to (230h + 907) mod 1009. The resulting 144-block cycle never reaches 42 at any of its seven phases. After 28,571 complete blocks, h is 127. The final three updates give 910, 968, and 749.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "randomized_c": {
+            "status": "ok",
+            "predicted": "749 0",
+            "correct": true,
+            "elapsed_sec": 76.284,
+            "reasoning_summary": "Each seven-step block maps x to (230x + 907) mod 1009, with fixed point 256. At each of the seven phases, the normalized value required to reach 42 fails the 144th-power test for membership in the subgroup generated by 230. After 28,571 blocks and three more steps, the register is 749.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          },
+          "strange_c": {
+            "status": "ok",
+            "predicted": "749 0",
+            "correct": true,
+            "elapsed_sec": 83.916,
+            "reasoning_summary": "Each seven-iteration block maps v to (230v + 907) mod 1009. The block states repeat every 144 blocks, and none of the seven phases reaches 42 in that cycle. After 28,571 blocks, v is 127. The final three updates produce 910, 968, and 749.",
+            "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Refusing to create helper binaries under temporary dir \"/tmp\" (codex_home: AbsolutePathBuf(\"/tmp/c_bench_ws_sfc4gkni/.codex_home\"))"
+          }
+        }
+      }
     }
   }
 }

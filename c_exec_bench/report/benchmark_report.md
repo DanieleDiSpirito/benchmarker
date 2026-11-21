@@ -8,12 +8,14 @@
 
 | Model | Overall Acc | Classic C | Randomized C | Strange C | Style Drop (Classic - Strange) | Triplet Consistency | All-3 Correct | Mean Latency | Tool Violations |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **codex:gpt-6.2-sol** | 95.8% | 97.5% | 95.0% | 95.0% | +2.5% | 92.5% | 92.5% | 9.91s | 0 |
 | **codex:gpt-6.1-terra** | 85.0% | 82.5% | 85.0% | 87.5% | -5.0% | 75.0% | 75.0% | 6.42s | 0 |
 
 ## 3. Accuracy Across Difficulty Tiers
 
 | Model | Tier 1 (Scalar) | Tier 2 (Arrays/Nested) | Tier 3 (Pointers/Bitwise) | Tier 4 (Invariants/Cycles) |
 | :--- | :---: | :---: | :---: | :---: |
+| **codex:gpt-6.2-sol** | 100.0% | 100.0% | 100.0% | 83.3% |
 | **codex:gpt-6.1-terra** | 100.0% | 96.7% | 76.7% | 66.7% |
 
 ## 4. Visual Analysis

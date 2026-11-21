@@ -40,6 +40,7 @@ pdfmetrics.registerFontFamily("Sans", normal="Sans", bold="Sans-B", italic="Sans
 INK = colors.HexColor("#0b0b0b")
 INK2 = colors.HexColor("#52514e")
 ZEBRA = colors.HexColor("#f4f4f1")
+GROUP_RULE = colors.HexColor("#8a8984")   # rule between the models of different plans
 
 ST = {
     "title": ParagraphStyle("title", fontName="Serif-B", fontSize=17, leading=21, alignment=1, spaceAfter=6, textColor=INK),
@@ -94,7 +95,9 @@ def B(t):
     return Paragraph(t, ST["bullet"], bulletText="•")
 
 
-def table(rows, widths, header_rows=1, bold_first_col=False):
+def table(rows, widths, header_rows=1, bold_first_col=False, groups=None):
+    """groups: one key per data row (e.g. the model's CLI); a rule separates rows whose key changes.
+    With tuple keys a change in the first element (e.g. the benchmark) gets a stronger rule."""
     data = []
     for i, r in enumerate(rows):
         data.append([c if not isinstance(c, str) else Paragraph(
@@ -111,6 +114,14 @@ def table(rows, widths, header_rows=1, bold_first_col=False):
     for i in range(header_rows, len(rows)):
         if (i - header_rows) % 2 == 1:
             style.append(("BACKGROUND", (0, i), (-1, i), ZEBRA))
+    if groups:
+        for j in range(1, len(groups)):
+            a, b = groups[j - 1], groups[j]
+            if a == b:
+                continue
+            strong = isinstance(a, tuple) and a[0] != b[0]
+            style.append(("LINEABOVE", (0, header_rows + j), (-1, header_rows + j), 0.8 if strong else 0.5,
+                          INK if strong else GROUP_RULE))
     t.setStyle(TableStyle(style))
     return t
 
@@ -261,7 +272,8 @@ def _story(data, models, summ, pending, figs):
                      (f"{num(pr['input'], 2)} · {num(pr.get('cached_input', pr['input']), 3)} · {num(pr['output'], 2)}"
                       + ("" if pr.get("confidence") == "official" else "†")) if pr else "–",
                      "run" if done else "<i>pending</i>"])
-    S += [table(rows, [33 * mm, 11 * mm, 26 * mm, 41 * mm, 13 * mm, 32 * mm, 14 * mm]),
+    S += [table(rows, [33 * mm, 11 * mm, 26 * mm, 41 * mm, 13 * mm, 32 * mm, 14 * mm],
+                groups=[b for b, _ in table_models]),
           P("Table 1. Plans and models. API prices only serve to express each answer's cost in dollars; "
             "† = third-party source, to be checked against the provider's pricing page.", "cap")]
 
@@ -334,7 +346,7 @@ def _story(data, models, summ, pending, figs):
         ])
     w = [30, 24, 12, 12, 15, 15, 16, 16, 15, 16, 13, 12, 14, 14, 16, 14]
     scale = lw / (sum(w) * mm)
-    S += [table(rows, [x * mm * scale for x in w], bold_first_col=True),
+    S += [table(rows, [x * mm * scale for x in w], bold_first_col=True, groups=[m["backend"] for m in models]),
           P("Table 3. Per-model summary. Token and cost figures are means per answer (retries included); quota is the "
             "total for the suite within the model's plan; capacity = tasks ÷ quota share. ≈ coarse, ~ derived, "
             "&lt;1% below resolution, n/a no such limit (section 3). With reasoning = share of answers with at "
@@ -354,7 +366,8 @@ def _story(data, models, summ, pending, figs):
         r.append(f"<b>{pct(summ[k(m)]['acc_macro'])}</b>")
         rows.append(r)
     cw = (lw - 38 * mm - 18 * mm) / len(benches)
-    S += [KeepTogether([table(rows, [38 * mm] + [cw] * len(benches) + [18 * mm], bold_first_col=True),
+    S += [KeepTogether([table(rows, [38 * mm] + [cw] * len(benches) + [18 * mm], bold_first_col=True,
+                              groups=[m["backend"] for m in models]),
                         P("Table 4. Accuracy per benchmark with 95% confidence interval (instruction following: prompt-level "
                           "strict accuracy).",
                           "cap")])]
@@ -426,7 +439,7 @@ def _story(data, models, summ, pending, figs):
                          quota_text(q5["used"], q5["method"], q5["bound"]), quota_text(qw["used"], qw["method"], qw["bound"])])
         w = [30, 17, 15, 13, 14, 15, 15, 14, 15, 15]
         scale = pw / (sum(w) * mm)
-        S += [table(rows, [x * mm * scale for x in w], bold_first_col=True),
+        S += [table(rows, [x * mm * scale for x in w], bold_first_col=True, groups=[m["backend"] for m, _ in esc]),
               P("Table 6. Escalation of wrong answers to high effort. Accuracies are means over benchmarks; quota is the "
                 "extra share used by the re-runs (≈ coarse, &lt;1% below resolution). * = escalation not finished.",
                 "cap")]
@@ -437,19 +450,21 @@ def _story(data, models, summ, pending, figs):
                 (f"{e['benches'][b]['recovered']} / {e['benches'][b]['wrong']}" if e["benches"].get(b, {}).get("wrong")
                  else "–") for b in bcols])
         cw = (pw - 30 * mm) / max(1, len(bcols))
-        S += [KeepTogether([table(rows, [30 * mm] + [cw] * len(bcols), bold_first_col=True),
+        S += [KeepTogether([table(rows, [30 * mm] + [cw] * len(bcols), bold_first_col=True,
+                                  groups=[m["backend"] for m, _ in esc]),
                             P("Table 7. Recovered / wrong answers per benchmark (– = nothing wrong at the main effort).",
                               "cap")])]
 
     S += [NextPageTemplate("landscape"), PageBreak(), P("4.3 Per-benchmark detail", "h2")]
     hdr = ["Benchmark", "Model", "Acc.", "95% CI", "n", "Err.", "Input", "Output", "Reasoning", "Cost per<br/>answer",
            "Median<br/>time", "p90<br/>time", "5-hour<br/>quota", "Weekly<br/>quota"]
-    rows = [hdr]
+    rows, keys = [hdr], []
     for b in benches:
         for m in models:
             c = data["cells"].get((m["backend"], m["key"], b))
             if not c:
                 continue
+            keys.append((b, m["backend"]))
             n = max(1, c["attempts"])
             t = c["tokens"]
             q5, qw = c["quota"]["5h"], c["quota"]["weekly"]
@@ -462,7 +477,7 @@ def _story(data, models, summ, pending, figs):
                          quota_text(q5["used"], q5["method"], q5["bound"]), quota_text(qw["used"], qw["method"], qw["bound"])])
     w = [32, 30, 13, 17, 8, 8, 15, 15, 16, 17, 15, 15, 15, 15]
     scale = lw / (sum(w) * mm)
-    S += [table(rows, [x * mm * scale for x in w]),
+    S += [table(rows, [x * mm * scale for x in w], groups=keys),
           P("Table 5. Metrics per benchmark (means per answer). Err. = requests that failed after retries, counted wrong.",
             "cap")]
 

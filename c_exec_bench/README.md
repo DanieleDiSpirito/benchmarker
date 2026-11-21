@@ -41,3 +41,17 @@ python3 run_benchmark.py \
            "agy:gemini-4-neon" "agy:gemini-4-argon"
 ```
 (Or omit `:model_id`—e.g. `--models claude codex agy`—to use each CLI's currently configured default model.)
+
+## Effort ladder (low → medium → high)
+`run_ladder.py` is a separate run that does not touch `results/predictions.json`. Every (problem, variant) pair
+runs at **low** effort; only the pairs a model got wrong are re-run at **medium**, and only those still wrong at
+**high** (never beyond high). Levels run phase by phase and every answer is checkpointed to `results/ladder.json`,
+so the same command resumes after a stop.
+```bash
+python3 run_ladder.py --models codex:gpt-6.1-terra codex:gpt-6-luna
+python3 run_ladder.py --models agy:gemini-4-neon --tiers 3 4      # agy: the effort suffix is added for you
+python3 run_ladder.py --report                                     # rebuild report/ladder_report.md only
+```
+`report/ladder_report.md` gives, per model, the single accuracy at each level (solved / attempted there) and the
+cumulative accuracy (solved by that level or an earlier one / all pairs), with time and tokens per level, plus
+cumulative accuracy per tier and per variant.

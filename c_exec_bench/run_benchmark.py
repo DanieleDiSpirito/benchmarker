@@ -58,7 +58,7 @@ def extract_predicted_stdout(raw_text: str) -> tuple[str, str]:
     """Returns (predicted_stdout, reasoning_summary)."""
     text = raw_text.strip()
     # Try parsing JSON block inside response
-    json_match = re.search(r\'\{[\s\S]*?"stdout"[\s\S]*?\}\', text)
+    json_match = re.search(r'\{[\s\S]*?"stdout"[\s\S]*?\}', text)
     if json_match:
         try:
             obj = json.loads(json_match.group(0))

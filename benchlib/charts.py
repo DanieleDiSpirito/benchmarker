@@ -9,6 +9,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
+from matplotlib.text import Text  # noqa: E402
 
 import numpy as np  # noqa: E402
 
@@ -111,7 +112,7 @@ def fig_accuracy(data, models, path):
 def fig_value(data, models, summaries, path):
     """Accuracy against cost per answer (left) and against weekly capacity (right)."""
     colors = model_colors()
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.3), sharey=True)
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 4.6), sharey=True)
     panels = ((axes[0], lambda s: s["cost"] / s["attempts"] if s["cost"] is not None and s["attempts"] else None,
                "API-equivalent cost per answer (USD, log)", "Quality vs cost"),
               (axes[1], lambda s: s["cap_weekly"], "Tasks per full weekly limit (log)", "Quality vs usable quota"))
@@ -201,6 +202,7 @@ def fig_quota(data, models, summaries, path):
 def fig_clusters(clusters: dict, summaries, path):
     """Cost per answer vs median time; points coloured by plan, clusters drawn as shaded regions."""
     fig, ax = plt.subplots(figsize=(7.0, 4.4))
+    names = []
     for g in clusters["groups"]:
         pts = []
         for m in g["members"]:
@@ -215,8 +217,8 @@ def fig_clusters(clusters: dict, summaries, path):
         ax.plot(10 ** np.r_[hull[:, 0], hull[:1, 0]], 10 ** np.r_[hull[:, 1], hull[:1, 1]], color=MUTED,
                 linewidth=0.8, linestyle=(0, (3, 2)), zorder=1)
         top = hull[hull[:, 1].argmax()]
-        ax.text(10 ** top[0], 10 ** (top[1] + 0.03), g["name"], ha="center", va="bottom", fontsize=7.5,
-                color=INK2, fontweight="bold", zorder=4)
+        names.append(ax.text(10 ** top[0], 10 ** (top[1] + 0.03), g["name"], ha="center", va="bottom",
+                             fontsize=7.5, color=INK2, fontweight="bold", zorder=4))
     models = [m for g in clusters["groups"] for m in g["members"]]
     labels = []
     for m in models:
@@ -229,10 +231,14 @@ def fig_clusters(clusters: dict, summaries, path):
     ax.margins(0.18)
     ax.set_xlabel("API-equivalent cost per answer (USD, log)")
     ax.set_ylabel("Median time per answer (s, log)")
+    from matplotlib.ticker import FuncFormatter, LogLocator
+    ax.yaxis.set_major_locator(LogLocator(base=10, subs=(1, 2, 5)))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}"))
+    ax.yaxis.set_minor_formatter(FuncFormatter(lambda v, _: ""))
     ax.set_title("Consumption and speed clusters", loc="left")
     fig.tight_layout(rect=(0, 0, 1, 0.94))
     plan_legend(fig, models)
-    place_labels(ax, labels)
+    place_labels(ax, labels, avoid=names)
     fig.savefig(path)
     plt.close(fig)
 
@@ -254,33 +260,54 @@ def _hull(points: np.ndarray) -> np.ndarray:
     return np.array(lower[:-1] + upper[:-1])
 
 
-def place_labels(ax, items, fontsize=6.8):
-    """Direct labels that avoid each other and the points: for every (x, y, text) try a few
-    offsets around the point and keep the first that collides with nothing placed so far."""
+def place_labels(ax, items, fontsize=6.8, avoid=()):
+    """Direct labels that avoid each other and the points: for every (x, y, text) try offsets
+    around the point, close ones first, then farther ones with a thin leader line, and keep the
+    first that collides with nothing placed so far. Crowded points are labelled first."""
+    import math
+
     fig = ax.figure
     fig.canvas.draw()
     r = fig.canvas.get_renderer()
-    taken = [ax.transData.transform((x, y)) for x, y, _ in items]
+    pix = [tuple(ax.transData.transform((x, y))) for x, y, _ in items]
     inside = ax.get_window_extent(r)
-    boxes = []
-    offsets = [(5, 3, "left", "bottom"), (5, -3, "left", "top"), (-5, 3, "right", "bottom"),
-               (-5, -3, "right", "top"), (0, 7, "center", "bottom"), (0, -7, "center", "top"),
-               (9, 0, "left", "center"), (-9, 0, "right", "center")]
-    for x, y, text in items:
+    near = [(5, 3, "left", "bottom"), (5, -3, "left", "top"), (-5, 3, "right", "bottom"),
+            (-5, -3, "right", "top"), (0, 7, "center", "bottom"), (0, -7, "center", "top"),
+            (9, 0, "left", "center"), (-9, 0, "right", "center")]
+    far = []
+    for dist in (16, 26, 38):
+        for k in range(16):
+            ang = 2 * math.pi * k / 16
+            dx, dy = dist * math.cos(ang), dist * 0.8 * math.sin(ang)
+            ha = "left" if dx > 3 else "right" if dx < -3 else "center"
+            va = "bottom" if dy > 3 else "top" if dy < -3 else "center"
+            far.append((dx, dy, ha, va))
+    dpi_scale = fig.dpi / 72
+    order = sorted(range(len(items)), key=lambda i: -sum(
+        1 for j in range(len(items)) if j != i and math.dist(pix[i], pix[j]) < 40 * dpi_scale))
+    boxes = [a.get_window_extent(r).expanded(1.04, 1.15) for a in avoid]   # e.g. cluster names
+    for i in order:
+        x, y, text = items[i]
         best = None
-        for dx, dy, ha, va in offsets:
+        for n, (dx, dy, ha, va) in enumerate(near + far):
+            leader = n >= len(near)
             t = ax.annotate(text, (x, y), xytext=(dx, dy), textcoords="offset points", ha=ha, va=va,
-                            fontsize=fontsize, color=INK, zorder=5)
-            bb = t.get_window_extent(r).expanded(1.04, 1.15)
+                            fontsize=fontsize, color=INK, zorder=5,
+                            arrowprops=dict(arrowstyle="-", color=MUTED, lw=0.5, shrinkA=1, shrinkB=4)
+                            if leader else None)
+            t.update_positions(r)
+            bb = Text.get_window_extent(t, r).expanded(1.04, 1.15)   # the text only, not its leader line
             out = bb.x0 < inside.x0 or bb.x1 > inside.x1 or bb.y0 < inside.y0 or bb.y1 > inside.y1
+            pad = 5 * dpi_scale
             hit = out or any(bb.overlaps(b) for b in boxes) or any(
-                bb.contains(px, py) for (px, py) in taken if (px, py) != tuple(ax.transData.transform((x, y))))
+                bb.x0 - pad < px < bb.x1 + pad and bb.y0 - pad < py < bb.y1 + pad
+                for j, (px, py) in enumerate(pix) if j != i)
             if not hit:
                 best = (t, bb)
                 break
             t.remove()
         if best is None:  # everything collides: keep the first position
-            dx, dy, ha, va = offsets[0]
+            dx, dy, ha, va = near[0]
             t = ax.annotate(text, (x, y), xytext=(dx, dy), textcoords="offset points", ha=ha, va=va,
                             fontsize=fontsize, color=INK, zorder=5)
             best = (t, t.get_window_extent(r))

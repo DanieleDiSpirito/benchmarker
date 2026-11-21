@@ -52,6 +52,19 @@ def plan_legend(fig, models, y=1.0):
                loc="upper center", bbox_to_anchor=(0.5, y), frameon=False, fontsize=7.5)
 
 
+def point_label(label: str) -> str:
+    """Short name for points in scatter charts: the plan colour already tells the vendor.
+    Gemini 3.8 Flash -> 3.8 Flash, Claude Sonnet 5.5 -> Sonnet 5.5, GPT-6 Luna -> Luna-6."""
+    import re
+
+    if m := re.fullmatch(r"GPT-([\d.]+) (.+)", label):
+        return f"{m.group(2)}-{m.group(1)}"
+    for prefix in ("Gemini ", "Claude "):
+        if label.startswith(prefix):
+            return label[len(prefix):]
+    return label
+
+
 def _mk(m):
     return (m["backend"], m["key"])
 
@@ -112,7 +125,7 @@ def fig_value(data, models, summaries, path):
                 continue
             yv = 100 * s["acc_macro"]
             ax.scatter([x], [yv], s=56, color=colors.get(_mk(m), MUTED), edgecolor=SURFACE, linewidth=2, zorder=3)
-            labels.append((x, yv, m["label"]))
+            labels.append((x, yv, point_label(m["label"])))
             plotted += 1
         if plotted:
             ax.set_xscale("log")
@@ -210,7 +223,7 @@ def fig_clusters(clusters: dict, summaries, path):
         s = summaries[_mk(m)]
         x, yv = s["cost"] / max(1, s["attempts"]), s["lat_p50"]
         ax.scatter([x], [yv], s=52, color=PLAN_COLORS.get(m["backend"], MUTED), edgecolor=SURFACE, linewidth=2, zorder=3)
-        labels.append((x, yv, m["label"]))
+        labels.append((x, yv, point_label(m["label"])))
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.margins(0.18)

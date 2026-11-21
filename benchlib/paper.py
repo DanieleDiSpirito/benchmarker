@@ -22,7 +22,7 @@ rl_config.useA85 = 0   # binary compressed streams: git and GitHub then treat th
 
 from . import charts
 from .clusters import cluster
-from .analysis import MIN_STEPS, STALL_MAX_TPS, STALL_MIN_S, collect, escalation, item_times, model_summary, quota_text
+from .analysis import MIN_STEPS, STALL_MAX_TPS, STALL_MIN_S, cache_stats, collect, escalation, item_times, model_summary, quota_text
 from . import config as cfg
 from .config import all_models, backend_settings, price_for
 from .datasets import bench_info, is_legacy_suite
@@ -281,7 +281,20 @@ def _findings(data, models, summ) -> list[tuple[str, str]]:
         return (f"<b>Claude models are verbose.</b> Opus and Sonnet write {span(cl, tok)} visible output tokens per "
                 f"answer (output minus reasoning), against at most {tok(max(others))} for every Gemini and GPT model.")
 
-    for fn in (agy_quota, argon, agy_reasoning, windows, luna, astra, verbose):
+    def cache():
+        st = {m["key"]: cache_stats(m) for m in models}
+        g = lambda b, f: [st[m["key"]][f] for m in plan(b) if st.get(m["key"]) and st[m["key"]][f] is not None]
+        p = lambda v: f"{100 * v:.0f}%"
+        sav = lambda b: span(sorted(abs(100 * v) for v in g(b, "saving")), lambda v: f"{v:.0f}%")
+        return (f"<b>Caching is part of what a plan delivers.</b> Codex serves {span(g('codex', 'cached_share'), p)} of "
+                f"its input from cache, which cuts the API cost per answer by {sav('codex')}. Claude Code hits the cache "
+                f"on {span(g('claude', 'hit_rate'), p)} of answers ({span(g('claude', 'cached_share'), p)} of the input), "
+                f"but in one-question sessions it also writes a new cache entry every time, billed at a premium, so on "
+                f"API prices caching raises its cost by {sav('claude')}. Antigravity caches almost nothing "
+                f"({span(g('agy', 'cached_share'), p)}). Since students use a model in long contiguous sessions, an "
+                f"ecosystem that caches well is worth more than these one-question runs show.")
+
+    for fn in (agy_quota, argon, agy_reasoning, windows, luna, astra, verbose, cache):
         add(fn)
     return out
 
@@ -347,10 +360,10 @@ def _q(s, w):
 
 
 VERBOSE_LABELS = {"t_models": "1", "t_benches": "2", "t_summary": "3", "t_acc": "4", "t_detail": "5", "t_esc": "6",
-                  "t_escb": "7", "t_correct": "8", "f_value": "1", "f_quota": "2", "f_acc": "3", "f_tok": "4",
+                  "t_escb": "7", "t_correct": "8", "t_cache": "9", "f_value": "1", "f_quota": "2", "f_acc": "3", "f_tok": "4",
                   "f_times": "5", "f_clusters": "6", "f_esc": "7"}
 COMPACT_LABELS = {"t_benches": "1", "t_summary": "2", "t_esc": "3", "t_correct": "4", "f_value": "1", "f_tok": "2",
-                  "t_models": "A1", "t_sources": "A2", "t_escb": "A3", "t_acc": "A4", "t_detail": "A5",
+                  "t_models": "A1", "t_sources": "A2", "t_cache": "A3", "t_escb": "A4", "t_acc": "A5", "t_detail": "A6",
                   "f_quota": "A1", "f_acc": "A2", "f_times": "A3", "f_clusters": "A4", "f_esc": "A5"}
 
 
@@ -413,6 +426,27 @@ def _story(data, models, summ, pending, figs, compact=True):
                                 "<font face='Mono'>data/frozen/</font>; the fingerprint of each frozen pool shows whether "
                                 "a later download still matches. Graders: the official IFBench (AllenAI) and BBEH "
                                 "(Google) scorers, vendored under Apache 2.0, and math-verify for math.", "cap")])]
+
+    def cache_table():
+        rows = [["Model", "Plan", "Input read<br/>from cache", "Answers with<br/>a cache hit", "Cache writes<br/>per answer",
+                 "Cost per<br/>answer", "Without<br/>cache", "Saving"]]
+        keys = []
+        for m in models:
+            c = cache_stats(m)
+            if not c:
+                continue
+            keys.append(m["backend"])
+            rows.append([m["label"], plan_of(m["backend"]), pct(c["cached_share"], 0), pct(c["hit_rate"], 0),
+                         ktok(c["writes_per_answer"]) if c["writes_per_answer"] else "–", usd(c["cost"]),
+                         usd(c["cost_no_cache"]),
+                         "–" if c["saving"] is None else
+                         ("0%" if round(100 * c["saving"]) == 0 else f"{100 * c['saving']:+.0f}%".replace("-", "−"))])
+        return [Spacer(1, 6), KeepTogether([table(rows, [32 * mm, 24 * mm, 20 * mm, 22 * mm, 20 * mm, 18 * mm, 18 * mm,
+                                                         16 * mm], bold_first_col=True, groups=keys),
+                P(f"{T('t_cache')}. Caching as delivered by each ecosystem: share of input tokens served from cache, "
+                  "share of answers with any cache hit, tokens written to cache (billed at a premium by Anthropic), and "
+                  "the API cost per answer as measured and with no caching at all. Saving = how much cheaper caching "
+                  "made each answer (negative: the cache writes cost more than the reads saved).", "cap")])]
 
     def benches_table():
         rows = [["Benchmark", "Area", "Tasks", "Scoring"]]
@@ -675,6 +709,11 @@ def _story(data, models, summ, pending, figs, compact=True):
                   "Escalation re-runs only the answers that were wrong at medium, once: the cumulative accuracy assumes "
                   "that an answer correct at medium would stay correct at high, and a single re-run cannot separate the "
                   "effect of the higher effort from run-to-run variance (re-running the same tasks at medium would).",
+                  "Every task is a fresh one-question session, so only the CLI's fixed prompt can be served from cache; "
+                  "in a real multi-turn session the conversation itself is cached too, and the ecosystems that cache "
+                  "well gain more than measured here. In Codex the cache warms up during a run (the first requests "
+                  "miss), so its share varies from run to run. Whether the plans count cached tokens less against "
+                  "the quota is not published.",
                   "Some API prices come from third-party sources (†)."]:
             out.append(B(t))
         return out
@@ -739,7 +778,7 @@ def _story(data, models, summ, pending, figs, compact=True):
               P("Supporting tables and figures: models and prices, dataset sources, accuracy per benchmark, quota per "
                 "task, the time of every task, consumption clusters and the per-benchmark detail of escalation and "
                 "metrics.")]
-        S += models_table() + [Spacer(1, 8)] + sources_table() + [fig_quota, fig_acc] + times_block()
+        S += models_table() + [Spacer(1, 8)] + sources_table() + cache_table() + [fig_quota, fig_acc] + times_block()
         S += [PageBreak()] + clusters_block("A.1 Consumption and speed clusters")
         if esc:
             S += [PageBreak(), P("A.2 Escalation per benchmark", "h2"), fig_esc] + escb_table()
@@ -779,5 +818,5 @@ def _story(data, models, summ, pending, figs, compact=True):
             top = max(g["members"], key=lambda m: summ[k(m)]["acc_macro"] or 0)
             S.append(B(f"Within <b>{g['name']}</b> the most accurate model is {top['label']} "
                        f"({pct(summ[k(top)]['acc_macro'])})."))
-    S += key_findings + correct_table() + [closing] + limitations()
+    S += key_findings + correct_table() + cache_table() + [closing] + limitations()
     return S

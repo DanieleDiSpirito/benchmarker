@@ -386,3 +386,34 @@ def item_times(model: dict, lock: dict | None = None) -> list[dict]:
             out.append({"bench": bench, "id": iid, "latency": r["latency_s"],
                         "correct": bool(r["call"]["ok"] and r["grade"]["correct"]), "stalled": is_stalled(r)})
     return out
+
+
+def cache_stats(model: dict) -> dict | None:
+    """How much a model's ecosystem caches: share of input tokens read from cache, share of answers with a cache
+    hit, cache writes, and the API cost per answer as measured and as it would be with no caching at all."""
+    pricing = load_pricing()
+    mdir = cfg.RESULTS_DIR / model["backend"] / model["key"]
+    lock = read_lock() or {}
+    recs = [r for b in lock.get("benchmarks", {}) for r in load_records(mdir / f"{b}.jsonl")]
+    if not recs:
+        return None
+    inp = cached = writes = hits = 0
+    cost = cost_nc = 0.0
+    known = True
+    for r in recs:
+        t = r["call"]["tokens"]
+        inp += int(t.get("input", 0))
+        cached += int(t.get("cached_input", 0))
+        writes += int(t.get("cache_write", 0))
+        hits += 1 if t.get("cached_input", 0) else 0
+        p = price_for(r["price_key"], r["started"], pricing) if r.get("price_key") else None
+        if p is None:
+            known = False
+            continue
+        cost += cost_usd(t, p)
+        cost_nc += cost_usd(dict(t, cached_input=0, cache_write=0), p)
+    n = len(recs)
+    return {"attempts": n, "cached_share": cached / inp if inp else None, "hit_rate": hits / n,
+            "writes_per_answer": writes / n, "cost": cost / n if known else None,
+            "cost_no_cache": cost_nc / n if known else None,
+            "saving": (1 - cost / cost_nc) if known and cost_nc else None}

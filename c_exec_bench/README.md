@@ -45,8 +45,9 @@ python3 run_benchmark.py \
 ## Effort ladder (low → medium → high)
 `run_ladder.py` is a separate run that does not touch `results/predictions.json`. Every (problem, variant) pair
 runs at **low** effort; only the pairs a model got wrong are re-run at **medium**, and only those still wrong at
-**high** (never beyond high). Levels run phase by phase and every answer is checkpointed to `results/ladder.json`,
-so the same command resumes after a stop.
+**high** (never beyond high). Levels run phase by phase and every answer is checkpointed to
+`results/ladder/<cli>__<model>.json` (one file per model, so different CLIs can run at the same time); the same
+command resumes after a stop.
 ```bash
 python3 run_ladder.py --backend codex      # every Codex model of the main benchmark (config/models.toml)
 python3 run_ladder.py --backend agy claude # or several CLIs; --backend all = agy, claude, codex

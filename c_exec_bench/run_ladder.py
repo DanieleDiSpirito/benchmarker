@@ -5,172 +5,86 @@ Effort ladder for the C-Exec-Equiv benchmark (separate from run_benchmark.py).
 Every (problem, variant) pair is first run at LOW effort. Only the pairs a model got wrong are
 re-run at MEDIUM, and only those still wrong at HIGH. Nothing goes beyond high.
 
+The CLIs are called exactly as in the main benchmark (bench.py): same backends (benchlib/backends),
+same isolation (no tools, no MCP, no user settings), same models (config/models.toml), same token
+accounting and API prices. Only the task and the effort change. The answer comes back as structured
+output ({"stdout": ...}), like the main benchmark's answers.
+
 The levels run phase by phase (all low, then medium on the failures, then high on the remaining
 failures), so a run stopped half-way still gives complete numbers for the finished levels.
 Every answer is checkpointed to results/ladder/<cli>__<model>.json (one file per model, so
 different CLIs can run at the same time): run the same command again to resume.
 
-Usage:
-  python3 run_ladder.py --models codex:gpt-6.1-terra codex:gpt-6-luna
-  python3 run_ladder.py --models agy:gemini-4-neon claude:claude-haiku-5-5 --tiers 3 4
-  python3 run_ladder.py --backend codex     # every Codex model of the main benchmark
-  python3 run_ladder.py --backend all       # agy, then claude, then codex
-  python3 run_ladder.py --report            # only rebuild report/ladder_report.md
+Usage (from the repository root, like bench.py):
+  uv run c_exec_bench/run_ladder.py --backend agy          # every agy model of the main benchmark
+  uv run c_exec_bench/run_ladder.py --backend all          # agy, then claude, then codex
+  uv run c_exec_bench/run_ladder.py --models claude-haiku-5-5 gpt-6-luna --tiers 3 4
+  uv run c_exec_bench/run_ladder.py --report               # only rebuild report/ladder_report.md
 
 Per model and level the report gives the single accuracy (solved / attempted at that level) and the
-cumulative accuracy (solved by that level or an earlier one / all pairs), plus time and tokens.
+cumulative accuracy (solved by that level or an earlier one / all pairs), plus time, tokens and API cost.
 """
 
 import argparse
 import json
-import os
 import pathlib
-import shutil
-import subprocess
 import sys
+import threading
 import time
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
-from run_benchmark import (DATASET_FILE, VARIANTS, build_prompt, extract_predicted_stdout, make_isolated_workspace,
-                           normalize_stdout)
+ROOT = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT.parent))          # benchlib, from the main benchmark
 
-ROOT = pathlib.Path(__file__).parent
+from benchlib.backends import get_backend                                   # noqa: E402
+from benchlib.config import BACKENDS, all_models, cost_usd, load_pricing, price_for  # noqa: E402
+from benchlib.prompts import PREAMBLE                                       # noqa: E402
+from benchlib.runner import effort_variant                                  # noqa: E402
+from run_benchmark import DATASET_FILE, VARIANTS, extract_predicted_stdout, normalize_stdout  # noqa: E402
+
 LADDER_DIR = ROOT / "results" / "ladder"          # one file per model: parallel runs never overwrite each other
-LEGACY_FILE = ROOT / "results" / "ladder.json"    # single-file store of the first version
 REPORT_FILE = ROOT / "report" / "ladder_report.md"
 LEVELS = ("low", "medium", "high")   # never beyond high
-MODELS_TOML = ROOT.parent / "config" / "models.toml"   # models of the main benchmark
-BACKENDS = ("agy", "claude", "codex")
+
+STDOUT_SCHEMA = {
+    "type": "object",
+    "properties": {"stdout": {"type": "string"}},
+    "required": ["stdout"],
+    "additionalProperties": False,
+}
 
 
-def benchmarked_models(backends: list[str]) -> list[str]:
-    """cli:model specs of every model in the main benchmark (config/models.toml) for these CLIs."""
-    import tomllib
-
-    cfg = tomllib.loads(MODELS_TOML.read_text(encoding="utf-8"))
-    return [f"{b}:{m['cli_model']}" for b in backends for m in cfg.get(b, {}).get("models", [])]
+def build_prompt(c_code: str) -> str:
+    return (PREAMBLE + "Trace the following C11 program by hand and predict the exact text it prints to standard "
+            "output when compiled and run. Put that text, and nothing else, in the `stdout` field (lines separated "
+            "by \\n, no trailing newline).\n\n```c\n" + c_code.strip() + "\n```\n")
 
 
-# ---------------------------------------------------------------- CLI runners (effort as a parameter)
-def _usage(d: dict | None) -> dict[str, int]:
-    """Normalise a usage block to input / cached_input / output / reasoning tokens."""
-    d = d or {}
-    pick = lambda *keys: next((int(d[k]) for k in keys if isinstance(d.get(k), (int, float))), 0)
-    return {
-        "input": pick("input_tokens", "prompt_tokens", "inputTokens"),
-        "cached_input": pick("cached_input_tokens", "cache_read_input_tokens", "cacheReadInputTokens"),
-        "output": pick("output_tokens", "completion_tokens", "outputTokens"),
-        "reasoning": pick("reasoning_output_tokens", "reasoning_tokens", "thinking_tokens"),
-    }
+# ---------------------------------------------------------------- models
+def resolve_models(names: list[str], backends: list[str]) -> list[dict]:
+    """Models of the main benchmark, by key / cli_model (optionally prefixed with 'cli:') or by backend."""
+    cfg = all_models()
+    out = [m for (b, _), m in cfg.items() if b in backends]
+    for name in names:
+        cli, _, key = name.rpartition(":")
+        hits = [m for (b, k), m in cfg.items() if (not cli or b == cli) and key in (k, m["cli_model"])]
+        if not hits:
+            raise SystemExit(f"Unknown model '{name}': use a key from config/models.toml, e.g. "
+                             + ", ".join(f"{b}:{k}" for b, k in cfg))
+        out += hits
+    seen, uniq = set(), []
+    for m in out:
+        if (m["backend"], m["key"]) not in seen:
+            seen.add((m["backend"], m["key"]))
+            uniq.append(m)
+    return uniq
 
 
-def run_claude(prompt: str, model: str | None, effort: str, ws: pathlib.Path, timeout: int) -> dict[str, Any]:
-    # Same isolation as the main benchmark (benchlib/backends/claude.py): no tools, no MCP servers, no user or
-    # project settings (hooks, plugins, output styles), no slash commands, nothing saved.
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--tools", "",
-           "--strict-mcp-config", "--setting-sources", "", "--disable-slash-commands", "--no-session-persistence",
-           "--effort", effort]
-    if model:
-        cmd += ["--model", model]
-    t0 = time.perf_counter()
-    proc = subprocess.run(cmd, cwd=ws, capture_output=True, text=True, timeout=timeout)
-    elapsed = time.perf_counter() - t0
-    tool_used, result = False, None
-    for line in proc.stdout.splitlines():
-        try:
-            ev = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if ev.get("type") == "assistant":
-            content = (ev.get("message") or {}).get("content") or []
-            if any(isinstance(c, dict) and c.get("type") in ("tool_use", "server_tool_use") for c in content):
-                tool_used = True
-        elif ev.get("type") == "result":
-            result = ev
-    ok = bool(result) and result.get("subtype") == "success" and not result.get("is_error")
-    return {"returncode": proc.returncode if ok else (proc.returncode or 1), "elapsed_sec": round(elapsed, 3),
-            "tool_used": tool_used, "raw_response": (result or {}).get("result") or "",
-            "usage": _usage((result or {}).get("usage")),
-            "stderr": (proc.stderr.strip() or ("" if ok else str((result or {}).get("result"))))[-2000:]}
+def label_of(m: dict) -> str:
+    return f"{m['backend']}:{m['key']}"
 
 
-def run_codex(prompt: str, model: str | None, effort: str, ws: pathlib.Path, timeout: int) -> dict[str, Any]:
-    out_msg = ws / "last_msg.txt"
-    if out_msg.exists():
-        out_msg.unlink()
-    cmd = ["codex", "exec", "--json", "--ephemeral", "--skip-git-repo-check",
-           "-c", f"model_reasoning_effort={effort}", "-s", "read-only", "-o", str(out_msg)]
-    if model:
-        cmd += ["-m", model]
-    cmd.append(prompt)
-    env = dict(os.environ, CODEX_HOME=str(ws / ".codex_home"))
-    t0 = time.perf_counter()
-    proc = subprocess.run(cmd, cwd=ws, env=env, capture_output=True, text=True, timeout=timeout)
-    elapsed = time.perf_counter() - t0
-    tool_used, usage = False, {}
-    text = out_msg.read_text(encoding="utf-8") if out_msg.exists() else ""
-    for line in proc.stdout.splitlines():
-        if not line.strip().startswith("{"):
-            continue
-        try:
-            ev = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        item = ev.get("item") or {}
-        if item.get("type") in ("command_execution", "mcp_tool_call", "file_change", "web_search"):
-            tool_used = True
-        if not text and item.get("type") == "agent_message":
-            text = item.get("text", "")
-        if ev.get("type") == "turn.completed":
-            usage = _usage(ev.get("usage"))
-    return {"returncode": proc.returncode, "elapsed_sec": round(elapsed, 3), "tool_used": tool_used,
-            "raw_response": text or proc.stdout, "usage": usage, "stderr": proc.stderr.strip()[-2000:]}
-
-
-def agy_model_id(model: str | None, effort: str) -> str | None:
-    """agy encodes the effort in the model id (gemini-4-neon-low / -medium / -high)."""
-    if not model:
-        return None
-    for lv in ("-low", "-medium", "-high", "-xhigh", "-max"):
-        if model.endswith(lv):
-            model = model[: -len(lv)]
-            break
-    return f"{model}-{effort}"
-
-
-def run_agy(prompt: str, model: str | None, effort: str, ws: pathlib.Path, timeout: int) -> dict[str, Any]:
-    cmd = ["agy", "-p", prompt, "--agent", "no-tools", "--effort", effort, "--output-format", "json"]
-    mid = agy_model_id(model, effort)
-    if mid:
-        cmd += ["--model", mid]
-    t0 = time.perf_counter()
-    proc = subprocess.run(cmd, cwd=ws, capture_output=True, text=True, timeout=timeout)
-    elapsed = time.perf_counter() - t0
-    tool_used, text, usage = False, proc.stdout, {}
-    try:
-        env = json.loads(proc.stdout)
-        text = env.get("result", env.get("response", proc.stdout))
-        usage = _usage(env.get("usage"))
-        # agy counts thinking inside output_tokens: keep output as the billed total
-        tool_used = env.get("num_turns", 1) > 1 or '"tool_use"' in proc.stdout or '"functionCall"' in proc.stdout
-    except json.JSONDecodeError:
-        pass
-    return {"returncode": proc.returncode, "elapsed_sec": round(elapsed, 3), "tool_used": tool_used,
-            "raw_response": text, "usage": usage, "stderr": proc.stderr.strip()[-2000:]}
-
-
-RUNNERS = {"claude": run_claude, "codex": run_codex, "agy": run_agy}
-
-
-# ---------------------------------------------------------------- ladder
-def parse_spec(spec: str) -> tuple[str, str | None, str]:
-    cli, _, model = spec.partition(":")
-    cli, model = cli.strip(), (model.strip() or None)
-    if cli == "agy" and model:       # one label per model, whatever effort suffix was typed
-        model = agy_model_id(model, "x")[:-2]
-    return cli, model, f"{cli}:{model or 'default'}"
-
-
+# ---------------------------------------------------------------- store
 def _model_file(label: str) -> pathlib.Path:
     return LADDER_DIR / (label.replace(":", "__").replace("/", "_") + ".json")
 
@@ -181,22 +95,23 @@ def load_store() -> dict:
         for f in sorted(LADDER_DIR.glob("*.json")):
             d = json.loads(f.read_text(encoding="utf-8"))
             runs[d["label"]] = d["records"]
-    if LEGACY_FILE.exists():   # models only in the old single file are imported as they are
-        for label, recs in json.loads(LEGACY_FILE.read_text(encoding="utf-8")).get("runs", {}).items():
-            if not label.startswith("claude:"):   # the first Claude runner was not isolated: those answers are void
-                runs.setdefault(label, recs)
     return {"runs": runs}
 
 
+_save_lock = threading.Lock()
+
+
 def save_store(store: dict, label: str) -> None:
-    LADDER_DIR.mkdir(parents=True, exist_ok=True)
-    f = _model_file(label)
-    tmp = f.with_suffix(".tmp")
-    tmp.write_text(json.dumps({"label": label, "levels": list(LEVELS), "records": store["runs"][label]}, indent=2),
-                   encoding="utf-8")
-    tmp.replace(f)
+    with _save_lock:
+        LADDER_DIR.mkdir(parents=True, exist_ok=True)
+        f = _model_file(label)
+        tmp = f.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"label": label, "levels": list(LEVELS), "records": store["runs"][label]},
+                                  indent=2), encoding="utf-8")
+        tmp.replace(f)
 
 
+# ---------------------------------------------------------------- ladder
 def needs(steps: list[dict], level: str, retry_errors: bool) -> bool:
     """Should this pair be run at `level`? Only if every lower level was run and failed."""
     idx = LEVELS.index(level)
@@ -211,7 +126,29 @@ def needs(steps: list[dict], level: str, retry_errors: bool) -> bool:
     return retry_errors and cur["status"] in ("cli_error", "timeout")
 
 
-def run_level(cli, model, label, level, problems, store, ws, timeout, retry_errors) -> None:
+def one_call(backend, model, level, code, gt, timeout, pricing) -> dict:
+    t0 = time.perf_counter()
+    try:
+        res = backend.call(model, build_prompt(code), STDOUT_SCHEMA, timeout)
+    except Exception as e:  # never kill the pool
+        from benchlib.backends.base import CallResult
+        res = CallResult(ok=False, error=f"exception: {e}")
+    elapsed = time.perf_counter() - t0
+    if isinstance(res.structured, dict) and "stdout" in res.structured:
+        pred = normalize_stdout(res.structured["stdout"])
+    else:
+        pred = extract_predicted_stdout(res.text or "")[0] if res.text else ""
+    status = "ok" if res.ok else ("timeout" if res.error == "timeout" else "cli_error")
+    price = price_for(model["pricing"], time.strftime("%Y-%m-%d"), pricing) if model.get("pricing") else None
+    return {"effort": level, "cli_model": model["cli_model"], "status": status, "predicted": pred,
+            "correct": status == "ok" and pred == gt, "elapsed_sec": round(elapsed, 3), "usage": res.tokens,
+            "cost_usd": cost_usd(res.tokens, price) if price else None, "turns": res.turns,
+            "error": res.error}
+
+
+def run_level(backend, base_model, level, problems, store, timeout, retry_errors, workers, pricing) -> None:
+    label = label_of(base_model)
+    model = effort_variant(base_model, level)
     recs = store["runs"].setdefault(label, {})
     todo = []
     for prob in problems:
@@ -222,23 +159,22 @@ def run_level(cli, model, label, level, problems, store, ws, timeout, retry_erro
             steps = rec["variants"].setdefault(var, {"steps": []})["steps"]
             if needs(steps, level, retry_errors):
                 todo.append((prob, var, rec, steps))
-    print(f"\n=== {label} @ {level}: {len(todo)} pair(s) to run ===")
-    for i, (prob, var, rec, steps) in enumerate(todo, 1):
-        gt = rec["ground_truth"]
-        try:
-            res = RUNNERS[cli](build_prompt(prob[var]), model, level, ws, timeout)
-            pred, summary = extract_predicted_stdout(res["raw_response"])
-            status = "tool_violation" if res["tool_used"] else ("ok" if res["returncode"] == 0 else "cli_error")
-            step = {"effort": level, "status": status, "predicted": pred, "correct": status == "ok" and pred == gt,
-                    "elapsed_sec": res["elapsed_sec"], "usage": res["usage"], "reasoning_summary": summary,
-                    "stderr": res["stderr"] if status != "ok" else ""}
-        except subprocess.TimeoutExpired:
-            step = {"effort": level, "status": "timeout", "predicted": "", "correct": False, "elapsed_sec": timeout,
-                    "usage": {}, "reasoning_summary": "", "stderr": "TimeoutExpired"}
-        steps[:] = [s for s in steps if s["effort"] != level] + [step]
-        save_store(store, label)
-        mark = "PASS" if step["correct"] else f"FAIL ({step['status']}: got {step['predicted']!r} vs {gt!r})"
-        print(f"  [{i}/{len(todo)}] {prob['id']} [{var:12s}] {level:6s} -> {mark} ({step['elapsed_sec']}s)")
+    print(f"\n=== {label} @ {level} ({model['cli_model']}): {len(todo)} pair(s) to run ===", flush=True)
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        futs = {pool.submit(one_call, backend, model, level, prob[var], rec["ground_truth"], timeout, pricing):
+                (prob, var, rec, steps) for prob, var, rec, steps in todo}
+        for i, fut in enumerate(as_completed(futs), 1):
+            prob, var, rec, steps = futs[fut]
+            step = fut.result()
+            with _save_lock:
+                steps[:] = [s for s in steps if s["effort"] != level] + [step]
+            save_store(store, label)
+            gt = rec["ground_truth"]
+            mark = "PASS" if step["correct"] else \
+                f"FAIL ({step['status']}: got {step['predicted']!r} vs {gt!r})" + \
+                (f" [{step['error'][:160]}]" if step["error"] else "")
+            print(f"  [{i}/{len(todo)}] {prob['id']} [{var:12s}] {level:6s} -> {mark} ({step['elapsed_sec']}s)",
+                  flush=True)
 
 
 # ---------------------------------------------------------------- report
@@ -260,6 +196,7 @@ def ladder_stats(recs: dict, tiers=None) -> dict:
             "median_s": times[len(times) // 2] if times else None,
             "total_s": sum(times),
             "tokens": tok,
+            "cost": sum(s.get("cost_usd") or 0 for s in steps),
         }
     return out
 
@@ -272,21 +209,22 @@ def build_report(store: dict) -> str:
     L = ["# C-Exec-Equiv: effort ladder (low → medium → high)", "",
          "Every (problem, variant) pair runs at **low** effort; pairs still wrong are re-run at **medium**, then at "
          "**high** (never beyond). *Single* = solved / attempted at that level; *cumulative* = solved by that level "
-         "or an earlier one / all pairs. Errors, timeouts and tool violations count as wrong.", ""]
+         "or an earlier one / all pairs. Errors and timeouts count as wrong. CLIs are called as in the main benchmark (no tools).", ""]
     L += ["| Model | Pairs | Low | Medium (single) | Medium (cumul.) | High (single) | High (cumul.) "
-          "| Median time L/M/H | Output tok L/M/H |",
-          "|---|---|---|---|---|---|---|---|---|"]
+          "| Median time L/M/H | Output tok L/M/H | API $ per pair L/M/H |",
+          "|---|---|---|---|---|---|---|---|---|---|"]
     for label, recs in store["runs"].items():
         st = ladder_stats(recs)
         lv = st["levels"]
         med = " / ".join("–" if lv[x]["median_s"] is None else f"{lv[x]['median_s']:.0f}s" for x in LEVELS)
         outt = " / ".join(f"{lv[x]['tokens']['output'] / max(1, lv[x]['attempted']):.0f}" if lv[x]["attempted"]
                           else "–" for x in LEVELS)
+        cost = " / ".join(f"{lv[x]['cost'] / lv[x]['attempted']:.4f}" if lv[x]["attempted"] else "–" for x in LEVELS)
         L.append(f"| {label} | {st['n']} | {_p(lv['low']['single'])} "
                  f"| {_p(lv['medium']['single'])} ({lv['medium']['solved']}/{lv['medium']['attempted']}) "
                  f"| {_p(lv['medium']['cumulative'])} "
                  f"| {_p(lv['high']['single'])} ({lv['high']['solved']}/{lv['high']['attempted']}) "
-                 f"| {_p(lv['high']['cumulative'])} | {med} | {outt} |")
+                 f"| {_p(lv['high']['cumulative'])} | {med} | {outt} | {cost} |")
     L += ["", "Output tokens are the mean per attempted pair at that level (agy includes thinking in output).", "",
           "## Cumulative accuracy per tier", "",
           "| Model | Tier | Pairs | Low | ≤ Medium | ≤ High |", "|---|---|---|---|---|---|"]
@@ -317,13 +255,15 @@ def write_report(store: dict) -> None:
 # ---------------------------------------------------------------- main
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--models", nargs="+", help="cli:model targets, e.g. codex:gpt-6.1-terra agy:gemini-4-neon")
     ap.add_argument("--backend", nargs="+", choices=BACKENDS + ("all",),
                     help="every model of the main benchmark (config/models.toml) for these CLIs; 'all' = agy claude codex")
+    ap.add_argument("--models", nargs="+", default=[],
+                    help="model keys from config/models.toml, optionally as cli:key (e.g. claude-haiku-5-5 codex:gpt-6-luna)")
     ap.add_argument("--tiers", nargs="+", type=int, default=[1, 2, 3, 4])
     ap.add_argument("--levels", nargs="+", choices=LEVELS, default=list(LEVELS),
                     help="stop the ladder early, e.g. --levels low medium (a level needs the ones below it)")
-    ap.add_argument("--timeout", type=int, default=600, help="seconds per request (high effort can be slow)")
+    ap.add_argument("--workers", type=int, help="parallel requests (default: the backend's workers in config/models.toml)")
+    ap.add_argument("--timeout", type=int, default=1800, help="seconds per request, as in bench.py")
     ap.add_argument("--retry-errors", action="store_true", help="re-run CLI errors and timeouts at the same level")
     ap.add_argument("--report", action="store_true", help="only rebuild report/ladder_report.md")
     a = ap.parse_args()
@@ -332,33 +272,30 @@ def main() -> int:
     if a.report:
         write_report(store)
         return 0
-    if a.backend:
-        a.models = (a.models or []) + benchmarked_models(list(BACKENDS) if "all" in a.backend else a.backend)
-    if not a.models:
-        ap.error("--models or --backend is required (or use --report)")
+    backends = list(BACKENDS) if a.backend and "all" in a.backend else (a.backend or [])
+    models = resolve_models(a.models, backends)
+    if not models:
+        ap.error("--backend or --models is required (or use --report)")
     if not DATASET_FILE.exists():
         print(f"[ERROR] {DATASET_FILE} not found. Run validate_dataset.py first.", file=sys.stderr)
         return 1
     problems = [p for p in json.loads(DATASET_FILE.read_text(encoding="utf-8"))["problems"] if p["tier"] in a.tiers]
     levels = [lv for lv in LEVELS if lv in a.levels]
+    pricing = load_pricing()
 
-    ws = make_isolated_workspace()
+    backend_cache = {}
     try:
-        for spec in a.models:
-            cli, model, label = parse_spec(spec)
-            if cli not in RUNNERS:
-                print(f"[WARN] Unknown CLI '{cli}', skipping.")
-                continue
-            if shutil.which(cli) is None:
-                print(f"[WARN] '{cli}' not found in PATH, skipping {label}.")
-                continue
+        for m in models:
+            b = m["backend"]
+            if b not in backend_cache:
+                backend_cache[b] = get_backend(b)
+            workers = a.workers or backend_cache[b].settings.get("workers", 1)
             for lv in levels:
-                run_level(cli, model, label, lv, problems, store, ws, a.timeout, a.retry_errors)
+                run_level(backend_cache[b], m, lv, problems, store, a.timeout, a.retry_errors, workers, pricing)
     except KeyboardInterrupt:
         print("\nInterrupted: every answer so far is saved, run the same command again to resume.")
         return 130
     finally:
-        shutil.rmtree(ws, ignore_errors=True)
         write_report(store)
     return 0
 

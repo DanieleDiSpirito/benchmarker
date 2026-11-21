@@ -470,8 +470,8 @@ def _story(data, models, summ, pending, figs, compact=True):
                                 "following: prompt-level strict accuracy).", "cap")])]
 
     fig_value = _fig(figs["value"], pw, f"{F('f_value')}. The student's trade-off: mean accuracy against API cost per "
-                     "answer (top) and against the number of correct answers a full weekly limit allows (bottom). Top "
-                     "right is best in the bottom panel.")
+                     "answer (top) and against the share of the weekly limit the whole suite used (bottom). Top left is "
+                     "best in both panels. Weekly shares of Claude Pro and ChatGPT Plus are derived (~, section 3).")
     fig_quota = _fig(figs["quota"], pw, f"{F('f_quota')}. Quota consumed per 10 tasks in the model's plan (hatched: ≈ or "
                      "~ values).")
     fig_acc = _fig(figs["acc"], pw, f"{F('f_acc')}. Accuracy per benchmark with 95% confidence intervals.")

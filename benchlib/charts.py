@@ -115,7 +115,8 @@ def fig_value(data, models, summaries, path):
     fig, axes = plt.subplots(2, 1, figsize=(7.2, 8.4))
     panels = ((axes[0], lambda s: s["cost"] / s["attempts"] if s["cost"] is not None and s["attempts"] else None,
                "API-equivalent cost per answer (USD, log)", "Quality vs cost"),
-              (axes[1], lambda s: s["cap_weekly"], "Correct answers per full weekly limit (log)", "Quality vs usable quota"))
+              (axes[1], lambda s: 100 * s["q_weekly"] if s["q_weekly"] else None,
+               "Weekly quota used by the whole suite (%, log)", "Quality vs weekly quota used"))
     pending = []
     for ax, fx, xlabel, title in panels:
         plotted, labels = 0, []
@@ -131,6 +132,11 @@ def fig_value(data, models, summaries, path):
         if plotted:
             ax.set_xscale("log")
             ax.margins(x=0.12, y=0.12)
+            if "quota" in title:   # plain percentages instead of powers of ten
+                from matplotlib.ticker import FixedLocator, FuncFormatter, NullFormatter
+                ax.xaxis.set_major_locator(FixedLocator([0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]))
+                ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:g}%"))
+                ax.xaxis.set_minor_formatter(NullFormatter())
         ax.set_xlabel(xlabel)
         ax.set_title(title, loc="left")
         pending.append((ax, labels))

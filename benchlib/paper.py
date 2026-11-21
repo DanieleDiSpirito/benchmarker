@@ -409,7 +409,7 @@ def _story(data, models, summ, pending, figs, compact=True):
                   "† = third-party source, to be checked against the provider's pricing page.", "cap")]
 
     def sources_table():
-        subset = {"livecodebench_hard": "file test6.jsonl; hard problems of January–April 2025",
+        subset = {"livecodebench_hard": "release v6; hard problems of January–April 2025",
                   "hmmt_feb_2026": "all problems", "beyond_aime": "all problems",
                   "supergpqa_hard": "questions with difficulty = hard",
                   "bbeh_mini": "official mini split (460 items, 23 tasks)", "ifbench": "all prompts"}
@@ -421,11 +421,10 @@ def _story(data, models, summ, pending, figs, compact=True):
                          f"<font face='Mono'>{lock['benchmarks'][b]['pool_sha256_16']}</font>"])
         return [KeepTogether([table(rows, [36 * mm, 62 * mm, 44 * mm, 28 * mm]),
                               P(f"{T('t_sources')}. Dataset sources, all public on Hugging Face "
-                                "(huggingface.co/datasets/&lt;name&gt;), downloaded by <font face='Mono'>bench.py "
-                                "prepare</font>. Items are normalised, shuffled with a fixed seed (2026) and frozen in "
-                                "<font face='Mono'>data/frozen/</font>; the fingerprint of each frozen pool shows whether "
+                                "(huggingface.co/datasets/&lt;name&gt;). Items are normalised, shuffled with a fixed seed (2026) and frozen; "
+                                "the fingerprint of each frozen pool shows whether "
                                 "a later download still matches. Graders: the official IFBench (AllenAI) and BBEH "
-                                "(Google) scorers, vendored under Apache 2.0, and math-verify for math.", "cap")])]
+                                "(Google) scorers (Apache 2.0) and math-verify for math.", "cap")])]
 
     def cache_table():
         rows = [["Model", "Plan", "Input read<br/>from cache", "Answers with<br/>a cache hit", "Cache writes<br/>per answer",
@@ -458,7 +457,7 @@ def _story(data, models, summ, pending, figs, compact=True):
             rows.append([sp["label"], sp["area"], str(lock["benchmarks"][b]["n"]), sp["verification"]])
         return [KeepTogether([table(rows, [42 * mm, 36 * mm, 13 * mm, 79 * mm]),
                 P((f"{T('t_benches')}. Benchmarks (first suite version). Generated code ran in a separate "
-                   "<font face='Mono'>python -I</font> process with a 60 s limit per program." if legacy else
+                   "Python process with a 60 s limit per program." if legacy else
                    f"{T('t_benches')}. Benchmarks. LiveCodeBench problems date from January–April 2025 (hard only), HMMT "
                    "from February 2026. Code runs in an isolated process (on macOS also sandboxed: no network, no writes "
                    "outside a temporary directory), 10 s per hidden test."), "cap")])]
@@ -468,7 +467,7 @@ def _story(data, models, summ, pending, figs, compact=True):
                      if legacy else
                      "Classic benchmarks (HumanEval, GSM8K, MATH, AIME 2024) are saturated, so we use recent or "
                      "deliberately hard ones whose answers can be checked by code.") + " Items are frozen with a fixed seed "
-                    "and pinned in <font face='Mono'>data/suite.lock.json</font>, so results produced on different machines "
+                    "and the exact task list is pinned, so results produced on different machines "
                     "cover the same tasks.")
     calling = ("Every model is called non-interactively through its plan's CLI, one question per request, in an empty "
                "temporary directory. Claude Code runs with every tool disabled; the agy and Codex agents keep their tools, "
@@ -748,9 +747,8 @@ def _story(data, models, summ, pending, figs, compact=True):
         abs_txt += "."
     S.append(P("<b>Abstract.</b> " + abs_txt, "abs"))
     if pending:
-        S.append(P("<b>Note.</b> Not yet run: " + ", ".join(m["label"] for m in pending) + ". Running "
-                   "<font face='Mono'>uv run bench.py run --backend " + "|".join(sorted({m['backend'] for m in pending}))
-                   + "</font> on a machine with that subscription adds them; every table and figure is rebuilt.", "abs"))
+        S.append(P("<b>Note.</b> Not yet run: " + ", ".join(m["label"] for m in pending) + ". Running the benchmark "
+                   "on a machine with that subscription adds them; every table and figure is rebuilt.", "abs"))
     S += [P("1. Introduction", "h1"),
           P("Each provider sells a $20/month plan (ChatGPT Plus, Claude Pro, Google AI Pro) that gives access to both a "
             "flagship model and cheaper, faster ones, each with a 5-hour and a weekly usage limit. Which plan gets the "

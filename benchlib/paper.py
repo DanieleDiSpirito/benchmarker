@@ -350,7 +350,7 @@ VERBOSE_LABELS = {"t_models": "1", "t_benches": "2", "t_summary": "3", "t_acc": 
                   "t_escb": "7", "t_correct": "8", "f_value": "1", "f_quota": "2", "f_acc": "3", "f_tok": "4",
                   "f_times": "5", "f_clusters": "6", "f_esc": "7"}
 COMPACT_LABELS = {"t_benches": "1", "t_summary": "2", "t_esc": "3", "t_correct": "4", "f_value": "1", "f_tok": "2",
-                  "t_models": "A1", "t_escb": "A2", "t_acc": "A3", "t_detail": "A4",
+                  "t_models": "A1", "t_sources": "A2", "t_escb": "A3", "t_acc": "A4", "t_detail": "A5",
                   "f_quota": "A1", "f_acc": "A2", "f_times": "A3", "f_clusters": "A4", "f_esc": "A5"}
 
 
@@ -394,6 +394,25 @@ def _story(data, models, summ, pending, figs, compact=True):
                       groups=[b for b, _ in table_models]),
                 P(f"{T('t_models')}. Plans and models. API prices only serve to express each answer's cost in dollars; "
                   "† = third-party source, to be checked against the provider's pricing page.", "cap")]
+
+    def sources_table():
+        subset = {"livecodebench_hard": "file test6.jsonl; hard problems of January–April 2025",
+                  "hmmt_feb_2026": "all problems", "beyond_aime": "all problems",
+                  "supergpqa_hard": "questions with difficulty = hard",
+                  "bbeh_mini": "official mini split (460 items, 23 tasks)", "ifbench": "all prompts"}
+        rows = [["Benchmark", "Hugging Face dataset", "Items used", "Pool SHA-256/16"]]
+        for b in benches:
+            sp = bench_info(b)
+            name = sp.get("source", "").split(" (")[0]
+            rows.append([sp["label"], f"<font face='Mono'>{name}</font>", subset.get(b, sp.get("source", "")),
+                         f"<font face='Mono'>{lock['benchmarks'][b]['pool_sha256_16']}</font>"])
+        return [KeepTogether([table(rows, [36 * mm, 62 * mm, 44 * mm, 28 * mm]),
+                              P(f"{T('t_sources')}. Dataset sources, all public on Hugging Face "
+                                "(huggingface.co/datasets/&lt;name&gt;), downloaded by <font face='Mono'>bench.py "
+                                "prepare</font>. Items are normalised, shuffled with a fixed seed (2026) and frozen in "
+                                "<font face='Mono'>data/frozen/</font>; the fingerprint of each frozen pool shows whether "
+                                "a later download still matches. Graders: the official IFBench (AllenAI) and BBEH "
+                                "(Google) scorers, vendored under Apache 2.0, and math-verify for math.", "cap")])]
 
     def benches_table():
         rows = [["Benchmark", "Area", "Tasks", "Scoring"]]
@@ -717,9 +736,10 @@ def _story(data, models, summ, pending, figs, compact=True):
 
         # ------------------------------------------------------------ appendix
         S += [PageBreak(), P("Appendix", "h1"),
-              P("Supporting tables and figures: models and prices, accuracy per benchmark, quota per task, the time of "
-                "every task, consumption clusters and the per-benchmark detail of escalation and metrics.")]
-        S += models_table() + [fig_quota, fig_acc] + times_block()
+              P("Supporting tables and figures: models and prices, dataset sources, accuracy per benchmark, quota per "
+                "task, the time of every task, consumption clusters and the per-benchmark detail of escalation and "
+                "metrics.")]
+        S += models_table() + [Spacer(1, 8)] + sources_table() + [fig_quota, fig_acc] + times_block()
         S += [PageBreak()] + clusters_block("A.1 Consumption and speed clusters")
         if esc:
             S += [PageBreak(), P("A.2 Escalation per benchmark", "h2"), fig_esc] + escb_table()

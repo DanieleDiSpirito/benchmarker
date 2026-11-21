@@ -52,7 +52,8 @@ uv run bench.py run --backend claude
 uv run bench.py run --backend claude --models claude-haiku-5-5   # a single model
 uv run bench.py escalate --backend agy         # re-run at high effort every task a model got wrong at medium
 uv run bench.py status                         # progress, tokens, cost and quota per model
-uv run bench.py paper                          # rebuild the PDF only
+uv run bench.py paper                          # rebuild the PDF only (body + appendix)
+uv run bench.py paper --verbose                # long version: every table and figure in the body
 uv run bench.py regrade                        # re-score stored replies with the current graders
 ```
 

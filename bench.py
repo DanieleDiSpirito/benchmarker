@@ -10,6 +10,7 @@
   uv run bench.py status                  progress, tokens, cost and quota per model
   uv run bench.py regrade                 re-score stored replies with the current graders
   uv run bench.py paper                   rebuild paper/benchmark_paper.pdf from every result present
+  uv run bench.py paper --verbose         the long version, every table and figure in the body
   uv run bench.py paper --suite archive/X report an archived suite into archive/X/benchmark_paper.pdf
 """
 from __future__ import annotations
@@ -59,6 +60,8 @@ def main(argv=None) -> int:
 
     p = sub.add_parser("paper", help="build the PDF")
     p.add_argument("--out", default=None)
+    p.add_argument("--verbose", action="store_true",
+                   help="every table and figure in the body (paper/benchmark_paper_verbose.pdf) instead of an appendix")
     p.add_argument("--suite", default=None,
                    help="archived suite directory (e.g. archive/v1-mini-2026-11-20): report it into that directory")
 
@@ -118,7 +121,7 @@ def main(argv=None) -> int:
             from benchlib.config import use_suite_dir
             use_suite_dir(a.suite)
         from benchlib.paper import build_paper
-        print(f"Paper: {build_paper(a.out)}")
+        print(f"Paper: {build_paper(a.out, verbose=a.verbose)}")
         return 0
     return 1
 

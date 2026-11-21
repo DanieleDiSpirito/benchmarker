@@ -149,10 +149,10 @@ class Doc(BaseDocTemplate):
         canvas.restoreState()
 
 
-def build_paper(out: str | None = None) -> Path:
+def build_paper(out: str | None = None, verbose: bool = False) -> Path:
     data = collect()
     cfg.PAPER_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = Path(out) if out else cfg.PAPER_DIR / "benchmark_paper.pdf"
+    out_path = Path(out) if out else cfg.PAPER_DIR / ("benchmark_paper_verbose.pdf" if verbose else "benchmark_paper.pdf")
     if not data["lock"] or not data["models"]:
         raise SystemExit("No results to report: run `bench.py run` first.")
     models = data["models"]
@@ -175,7 +175,7 @@ def build_paper(out: str | None = None) -> Path:
         data["escalation"] = [(m, e) for m in models if (e := escalation(data, m)) and e["rerun"]]
         if data["escalation"]:
             charts.fig_escalation(data["escalation"], figs["esc"])
-        Doc(out_path).build(_story(data, models, summ, pending, figs))
+        Doc(out_path).build(_story(data, models, summ, pending, figs, compact=not verbose))
     return out_path
 
 
@@ -286,7 +286,7 @@ def _findings(data, models, summ) -> list[tuple[str, str]]:
     return out
 
 
-def _times_comment(times) -> str:
+def _times_comment(times, summary_ref="Table 3") -> str:
     """Figure 5 in words: models whose wrong answers come much faster or much slower than their correct ones."""
     import statistics as st
 
@@ -303,7 +303,7 @@ def _times_comment(times) -> str:
     if fast:
         parts.append("Some models fail <b>fast</b>: " + ", ".join(fast) + ". They give up on hard tasks after little "
                      "reasoning, so a wrong answer costs them little time; this matches the skipped reasoning seen in "
-                     "Table 3.")
+                     f"{summary_ref}.")
     if slow:
         parts.append("Others fail <b>slowly</b>: " + ", ".join(slow) + ". They reason at length and still miss, "
                      "the worst case for a student, who waits and pays quota for a wrong answer.")
@@ -346,7 +346,20 @@ def _q(s, w):
     return quota_text(s[f"q_{w}"], s[f"q_{w}_method"], s[f"q_{w}_bound"])
 
 
-def _story(data, models, summ, pending, figs):
+VERBOSE_LABELS = {"t_models": "1", "t_benches": "2", "t_summary": "3", "t_acc": "4", "t_detail": "5", "t_esc": "6",
+                  "t_escb": "7", "t_correct": "8", "f_value": "1", "f_quota": "2", "f_acc": "3", "f_tok": "4",
+                  "f_times": "5", "f_clusters": "6", "f_esc": "7"}
+COMPACT_LABELS = {"t_benches": "1", "t_summary": "2", "t_esc": "3", "t_correct": "4", "f_value": "1", "f_tok": "2",
+                  "t_models": "A1", "t_escb": "A2", "t_acc": "A3", "t_detail": "A4",
+                  "f_quota": "A1", "f_acc": "A2", "f_times": "A3", "f_clusters": "A4", "f_esc": "A5"}
+
+
+def _story(data, models, summ, pending, figs, compact=True):
+    """compact: the considerations and the tables/figures that support them, everything else in an appendix.
+    verbose: every table and figure in the body (the earlier layout)."""
+    L = COMPACT_LABELS if compact else VERBOSE_LABELS
+    T = lambda key: f"Table {L[key]}"
+    F = lambda key: f"Figure {L[key]}"
     k = lambda m: (m["backend"], m["key"])
     lock = data["lock"]
     legacy = is_legacy_suite(lock)
@@ -354,6 +367,7 @@ def _story(data, models, summ, pending, figs):
     effort_txt = " / ".join(efforts) or "default"
     benches = list(lock["benchmarks"])
     settings = {b: backend_settings(b) for b in ("agy", "claude", "codex")}
+    plan_of = lambda b: settings[b].get("plan", b).split(" (")[0]
     first = min((c["first"] for c in data["cells"].values() if c["first"]), default="")[:10]
     last = max((c["last"] for c in data["cells"].values() if c["last"]), default="")[:10]
     n_items = sum(v["n"] for v in lock["benchmarks"].values())
@@ -361,10 +375,300 @@ def _story(data, models, summ, pending, figs):
     lw = landscape(A4)[0] - 28 * mm
     ranked = sorted([m for m in models if summ[k(m)]["acc_macro"] is not None], key=lambda m: -summ[k(m)]["acc_macro"])
     roomy = sorted([m for m in models if summ[k(m)]["cap_weekly"]], key=lambda m: -summ[k(m)]["cap_weekly"])
+    esc = data.get("escalation") or []
+    findings = _findings(data, models, summ)
 
+    # ------------------------------------------------------------ blocks
+    def models_table():
+        rows = [["Plan", "CLI", "Model", "Model id", "Effort", "API price $/M tokens<br/>in · cache · out", "Status"]]
+        table_models = {(m["backend"], m["key"]): m for m in models} if legacy else \
+            {bk: next((x for x in models if (x["backend"], x["key"]) == bk), m) for bk, m in all_models().items()}
+        for (b, key), m in table_models.items():
+            pr = price_for(m.get("pricing", ""), last or None)
+            done = any(x["backend"] == b and x["key"] == key for x in models)
+            rows.append([plan_of(b), b, m["label"], f"<font face='Mono'>{m['cli_model']}</font>", m.get("effort", "–"),
+                         (f"{num(pr['input'], 2)} · {num(pr.get('cached_input', pr['input']), 3)} · {num(pr['output'], 2)}"
+                          + ("" if pr.get("confidence") == "official" else "†")) if pr else "–",
+                         "run" if done else "<i>pending</i>"])
+        return [table(rows, [24 * mm, 12 * mm, 33 * mm, 42 * mm, 14 * mm, 32 * mm, 13 * mm],
+                      groups=[b for b, _ in table_models]),
+                P(f"{T('t_models')}. Plans and models. API prices only serve to express each answer's cost in dollars; "
+                  "† = third-party source, to be checked against the provider's pricing page.", "cap")]
+
+    def benches_table():
+        rows = [["Benchmark", "Area", "Tasks", "Scoring"]]
+        for b in benches:
+            sp = bench_info(b)
+            rows.append([sp["label"], sp["area"], str(lock["benchmarks"][b]["n"]), sp["verification"]])
+        return [KeepTogether([table(rows, [42 * mm, 36 * mm, 13 * mm, 79 * mm]),
+                P((f"{T('t_benches')}. Benchmarks (first suite version). Generated code ran in a separate "
+                   "<font face='Mono'>python -I</font> process with a 60 s limit per program." if legacy else
+                   f"{T('t_benches')}. Benchmarks. LiveCodeBench problems date from January–April 2025 (hard only), HMMT "
+                   "from February 2026. Code runs in an isolated process (on macOS also sandboxed: no network, no writes "
+                   "outside a temporary directory), 10 s per hidden test."), "cap")])]
+
+    bench_intro = P(("This run used the first version of the suite: widely used benchmarks whose answers can be checked "
+                     "by code. Several of them proved close to saturation, which is why later runs use harder ones."
+                     if legacy else
+                     "Classic benchmarks (HumanEval, GSM8K, MATH, AIME 2024) are saturated, so we use recent or "
+                     "deliberately hard ones whose answers can be checked by code.") + " Items are frozen with a fixed seed "
+                    "and pinned in <font face='Mono'>data/suite.lock.json</font>, so results produced on different machines "
+                    "cover the same tasks.")
+    calling = ("Every model is called non-interactively through its plan's CLI, one question per request, in an empty "
+               "temporary directory. Claude Code runs with every tool disabled; the agy and Codex agents keep their tools, "
+               "but the prompt forbids them and their sandbox restricts them."
+               + ("" if legacy else " The agy and Claude Code runs used one machine and account, the Codex runs another "
+                  "machine, account and network: times and quotas are comparable across these two groups only in "
+                  "relative terms."))
+
+    def summary_table():
+        hdr = ["Model", "Plan", "Mean<br/>acc.", "Tasks", "Cost per<br/>answer", "Cost per<br/>correct", "Input<br/>tokens",
+               "Output<br/>tokens", "Reason.<br/>tokens", "With<br/>reasoning", "Median<br/>time", "p90<br/>time",
+               "5-hour<br/>quota", "Weekly<br/>quota", "Correct<br/>per 5h", "Correct<br/>per week"]
+        rows = [hdr]
+        for m in models:
+            s = summ[k(m)]
+            t = s["tokens"]
+            n = max(1, s["attempts"])
+            p90 = [c["lat_p90"] for (b, kk, _), c in data["cells"].items() if (b, kk) == k(m) and c["lat_p90"]]
+            rows.append([
+                m["label"], plan_of(m["backend"]), pct(s["acc_macro"]),
+                f"{s['n_done']}/{s['n_target']}", usd(s["cost"] / n if s["cost"] is not None else None),
+                usd(s["cost_per_correct"]), ktok(t.get("input", 0) / n), ktok(t.get("output", 0) / n),
+                ktok(t.get("reasoning", 0) / n), pct(s["thinking_rate"], 0),
+                (num(s["lat_p50"], 1) + " s") if s["lat_p50"] else "–",
+                (num(max(p90), 0) + " s") if p90 else "–", _q(s, "5h"), _q(s, "weekly"),
+                num(s["cap_5h"], 0) if s["cap_5h"] else "–", num(s["cap_weekly"], 0) if s["cap_weekly"] else "–",
+            ])
+        w = [30, 24, 12, 12, 15, 15, 16, 16, 15, 16, 13, 12, 14, 14, 16, 14]
+        scale = lw / (sum(w) * mm)
+        return [table(rows, [x * mm * scale for x in w], bold_first_col=True, groups=[m["backend"] for m in models]),
+                P(f"{T('t_summary')}. Per-model summary. Token and cost figures are means per answer (retries included); "
+                  "quota is the total for the suite within the model's plan; capacity = correct answers ÷ quota share. "
+                  "≈ coarse, ~ derived, &lt;1% below resolution, n/a no such limit (section 3). With reasoning = share of "
+                  "answers with at least one reasoning token: at a given effort, adaptive models may skip reasoning "
+                  "altogether."
+                  + (f" Times exclude {sum(summ[k(m)]['stalled'] for m in models)} stalled request(s) "
+                     f"(over {STALL_MIN_S} s at under {STALL_MAX_TPS:.0f} output tokens/s, i.e. queueing or rate-limit "
+                     "retries, not generation)." if any(summ[k(m)]['stalled'] for m in models) else ""), "cap")]
+
+    def acc_table():
+        rows = [["Model"] + [bench_info(b)["label"] for b in benches] + ["Mean"]]
+        for m in models:
+            r = [m["label"]]
+            for b in benches:
+                c = data["cells"].get((m["backend"], m["key"], b))
+                r.append("–" if not c or c["acc"] is None else
+                         f"<b>{pct(c['acc'], 0)}</b> <font size=6 color='#52514e'>[{100 * c['ci'][0]:.0f}–"
+                         f"{100 * c['ci'][1]:.0f}] n={c['n_done']}</font>")
+            r.append(f"<b>{pct(summ[k(m)]['acc_macro'])}</b>")
+            rows.append(r)
+        cw = (lw - 38 * mm - 18 * mm) / len(benches)
+        return [KeepTogether([table(rows, [38 * mm] + [cw] * len(benches) + [18 * mm], bold_first_col=True,
+                                    groups=[m["backend"] for m in models]),
+                              P(f"{T('t_acc')}. Accuracy per benchmark with 95% confidence interval (instruction "
+                                "following: prompt-level strict accuracy).", "cap")])]
+
+    fig_value = _fig(figs["value"], pw, f"{F('f_value')}. The student's trade-off: mean accuracy against API cost per "
+                     "answer (top) and against the number of correct answers a full weekly limit allows (bottom). Top "
+                     "right is best in the bottom panel.")
+    fig_quota = _fig(figs["quota"], pw, f"{F('f_quota')}. Quota consumed per 10 tasks in the model's plan (hatched: ≈ or "
+                     "~ values).")
+    fig_acc = _fig(figs["acc"], pw, f"{F('f_acc')}. Accuracy per benchmark with 95% confidence intervals.")
+    fig_tok = KeepTogether([_img(figs["tok"], pw * 0.92),
+                            P(f"{F('f_tok')}. Mean tokens per answer. Input includes the CLI's system prompt; reasoning "
+                              "and visible output form the billed output.", "cap")]
+                           + [B(t) for name, t in findings if name in ("agy_reasoning", "verbose")])
+
+    def times_block():
+        if not data.get("has_times"):
+            return []
+        return [_fig(figs["times"], pw, f"{F('f_times')}. Time per task, one bar per task in suite order and grouped by "
+                     "benchmark: blue = correct, red = wrong (a failed call counts as wrong). Each panel has its own time "
+                     "scale. Provider stalls are clipped and labelled with their real time; medians exclude them."),
+                P(_times_comment(data["times"], T("t_summary")))]
+
+    def clusters_block(title):
+        cl = data["clusters"]
+        out = [P(title, "h2")]
+        if cl["k"] > 1:
+            out.append(P(f"Models are grouped by consumption (cost and output tokens per answer) and speed (median time) "
+                         f"with k-means on standardised log values. k-means finds <b>{cl['k']} groups</b> (silhouette "
+                         f"{cl['silhouette']:.2f}; above 0.5 the groups are well separated, below 0.25 they are weak). Each "
+                         "group is named after its centre relative to the median model; the tables compare models only "
+                         "with their peers."))
+        out.append(_fig(figs["clusters"], pw, f"{F('f_clusters')}. Consumption and speed clusters (shaded regions). "
+                        "Colour shows the plan; the grouping also uses output tokens, which this projection does not show."))
+        hdr = ["Model", "Plan", "Mean<br/>acc.", "Cost per<br/>answer", "Input<br/>tokens", "Output<br/>tokens",
+               "Reasoning<br/>tokens", "Median<br/>time", "Output<br/>tok/s", "5h quota<br/>/10 tasks", "Weekly<br/>/10 tasks"]
+        w = [27, 19, 11, 14, 12, 12, 18, 13, 12, 15, 15]
+        scale = pw / (sum(w) * mm)
+        for g in cl["groups"]:
+            c = g["center"]
+            rows = [hdr]
+            for m in sorted(g["members"], key=lambda m: -(summ[k(m)]["acc_macro"] or 0)):
+                s_ = summ[k(m)]
+                n = max(1, s_["attempts"])
+                t = s_["tokens"]
+                per10 = lambda wdw: ("–" if s_[f"q_{wdw}"] is None else
+                                     quota_text(s_[f"q_{wdw}"] / n * 10, s_[f"q_{wdw}_method"], None))
+                rows.append([m["label"], charts.plan_name(m["backend"]), pct(s_["acc_macro"]),
+                             usd(s_["cost"] / n if s_["cost"] is not None else None), ktok(t.get("input", 0) / n),
+                             ktok(t.get("output", 0) / n), ktok(t.get("reasoning", 0) / n),
+                             (num(s_["lat_p50"], 1) + " s") if s_["lat_p50"] else "–",
+                             num(s_["tps"], 0) if s_["tps"] else "–", per10("5h"), per10("weekly")])
+            cap = (f"<b>{g['name']}</b>" + (f" — centre: {usd(c['cost'])} and {ktok(c['tokens'])} output tokens per "
+                                            f"answer, {num(c['time'], 0)} s median time." if c else "."))
+            out.append(KeepTogether([Spacer(1, 6), P(cap, "body"),
+                                     table(rows, [x * mm * scale for x in w], bold_first_col=True)]))
+        if cl["skipped"]:
+            out.append(P("Not clustered (missing cost or time): " + ", ".join(m["label"] for m in cl["skipped"]) + ".",
+                         "cap"))
+        return out
+
+    esc_intro = P("Each task a model got wrong at the main effort was re-run once at <i>high</i> effort. A large recovery "
+                  "means the model knew how to solve the task and simply did not think enough; a small one means the "
+                  "error is a real limit of the model. The cost of escalation is what a student pays in quota for the "
+                  "second attempt.")
+    fig_esc = _fig(figs["esc"], pw, f"{F('f_esc')}. Accuracy at the main effort and after re-running the wrong answers "
+                   "at high effort (cumulative).") if esc else None
+
+    def esc_table():
+        hdr = ["Model", "Recovered<br/>/ wrong", "Recovery<br/>rate", "Acc.<br/>main", "Acc.<br/>cumul.",
+               "Cost per<br/>re-run", "Output<br/>per re-run", "Median<br/>time", "Extra<br/>5h quota", "Extra<br/>weekly"]
+        rows = [hdr]
+        for m, e in esc:
+            n = max(1, e["attempts"])
+            q5, qw = e["quota"]["5h"], e["quota"]["weekly"]
+            rows.append([m["label"] + ("" if e["complete"] else " *"), f"{e['recovered']} / {e['wrong']}",
+                         pct(e["recovery_rate"], 0), pct(e["acc_medium"]), pct(e["acc_cumulative"]),
+                         usd(e["cost"] / n), ktok(e["tokens"].get("output", 0) / n),
+                         (num(e["lat_p50"], 0) + " s") if e["lat_p50"] else "–",
+                         quota_text(q5["used"], q5["method"], q5["bound"]), quota_text(qw["used"], qw["method"], qw["bound"])])
+        w = [30, 17, 15, 13, 14, 15, 15, 14, 15, 15]
+        scale = pw / (sum(w) * mm)
+        return [KeepTogether([table(rows, [x * mm * scale for x in w], bold_first_col=True,
+                                    groups=[m["backend"] for m, _ in esc]),
+                              P(f"{T('t_esc')}. Escalation of wrong answers to high effort. Accuracies are means over "
+                                "benchmarks; quota is the extra share used by the re-runs (≈ coarse, &lt;1% below "
+                                "resolution). * = escalation not finished.", "cap")])]
+
+    def escb_table():
+        bcols = [b for b in benches if any(b in e["benches"] for _, e in esc)]
+        rows = [["Model"] + [bench_info(b)["label"] for b in bcols]]
+        for m, e in esc:
+            rows.append([m["label"]] + [
+                (f"{e['benches'][b]['recovered']} / {e['benches'][b]['wrong']}" if e["benches"].get(b, {}).get("wrong")
+                 else "–") for b in bcols])
+        cw = (pw - 30 * mm) / max(1, len(bcols))
+        return [KeepTogether([table(rows, [30 * mm] + [cw] * len(bcols), bold_first_col=True,
+                                    groups=[m["backend"] for m, _ in esc]),
+                              P(f"{T('t_escb')}. Recovered / wrong answers per benchmark (– = nothing wrong at the main "
+                                "effort).", "cap")])]
+
+    def detail_table():
+        hdr = ["Benchmark", "Model", "Acc.", "95% CI", "n", "Err.", "Input", "Output", "Reasoning", "Cost per<br/>answer",
+               "Median<br/>time", "p90<br/>time", "5-hour<br/>quota", "Weekly<br/>quota"]
+        rows, keys = [hdr], []
+        for b in benches:
+            for m in models:
+                c = data["cells"].get((m["backend"], m["key"], b))
+                if not c:
+                    continue
+                keys.append((b, m["backend"]))
+                n = max(1, c["attempts"])
+                t = c["tokens"]
+                q5, qw = c["quota"]["5h"], c["quota"]["weekly"]
+                rows.append([bench_info(b)["label"], m["label"], pct(c["acc"]),
+                             f"{100 * c['ci'][0]:.0f}–{100 * c['ci'][1]:.0f}%", str(c["n_done"]), str(c["errors"]),
+                             ktok(t.get("input", 0) / n), ktok(t.get("output", 0) / n), ktok(t.get("reasoning", 0) / n),
+                             usd(c["cost"] / n if c["cost"] is not None else None),
+                             (num(c["lat_p50"], 1) + " s") if c["lat_p50"] else "–",
+                             (num(c["lat_p90"], 1) + " s") if c["lat_p90"] else "–",
+                             quota_text(q5["used"], q5["method"], q5["bound"]),
+                             quota_text(qw["used"], qw["method"], qw["bound"])])
+        w = [32, 30, 13, 17, 8, 8, 15, 15, 16, 17, 15, 15, 15, 15]
+        scale = lw / (sum(w) * mm)
+        return [table(rows, [x * mm * scale for x in w], groups=keys),
+                P(f"{T('t_detail')}. Metrics per benchmark (means per answer). Err. = requests that failed after retries, "
+                  "counted wrong.", "cap")]
+
+    def correct_table():
+        good = sorted([m for m in models if summ[k(m)]["cap_weekly"]], key=lambda m: -summ[k(m)]["cap_weekly"])
+        if not good:
+            return []
+        rows = [["Model", "Plan", "Mean<br/>acc.", "Correct per<br/>5-hour window", "Correct per<br/>week"]]
+        for m in good:
+            s_ = summ[k(m)]
+            rows.append([m["label"], plan_of(m["backend"]), pct(s_["acc_macro"]),
+                         num(s_["cap_5h"], 0) if s_["cap_5h"] else "–", num(s_["cap_weekly"], 0)])
+        return [Spacer(1, 4), KeepTogether([table(rows, [38 * mm, 32 * mm, 20 * mm, 36 * mm, 30 * mm], bold_first_col=True),
+                                            P(f"{T('t_correct')}. Correct answers a full limit gives, best first: quality "
+                                              f"and quota in one number. ~ and ≈ values of {T('t_summary')} carry over.",
+                                              "cap")])]
+
+    def metrics(short):
+        items = [
+            "<b>Accuracy</b>: pass@1 with a 95% Wilson interval; the overall score is the unweighted mean over benchmarks.",
+            "<b>Cost per answer</b>: what the request would cost through the API (input, cache reads and writes, output; "
+            "reasoning is billed as output)." + ("" if short else " Also reported per correct answer."),
+            "<b>Tokens</b>: input (with the cached part), output and reasoning as reported by the CLI, agent system "
+            "prompt included. Reasoning is a subset of output, never added twice.",
+            "<b>Time per answer</b>: wall-clock latency of the CLI call (median and 90th percentile). Requests that "
+            f"took over {STALL_MIN_S} s while producing under {STALL_MAX_TPS:.0f} output tokens/s were waiting on the "
+            "provider, not generating: they are excluded from time figures only.",
+            "<b>Quota</b>: change of the 5-hour and weekly counters read from the CLI before and after each block of "
+            "requests, and the resulting <b>capacity</b>: correct answers per full 5-hour window or week (wrong answers "
+            "consume quota but do not count).",
+            "<b>Escalation</b>: every task a model got wrong at the main effort is re-run once at <i>high</i> effort, "
+            "kept apart from the main results. We report how many are recovered and the cumulative accuracy "
+            "(main effort plus recovered tasks), with the extra cost, time and quota they took.",
+        ]
+        if not short:
+            items.append("<b>Clusters</b>: models are grouped by consumption (cost and output tokens per answer) and "
+                         "speed (median time) with k-means on standardised log values; the number of groups is the one "
+                         "with the best silhouette.")
+        out = [P("3. Metrics", "h1")] + [B(t) for t in items]
+        out.append(P("Claude Code and Codex report quota in whole percentage points. A model's total is exact to ±1 "
+                     "point; it is split across benchmarks by API cost. Totals spanning fewer than "
+                     f"{MIN_STEPS} points are marked ≈; a window that barely moved is derived from the other one through "
+                     "the account's weekly/5-hour ratio (marked ~); &lt;1% means the counter never moved. Quota is not "
+                     "proportional to list prices, so it is never estimated from them. Gemini 4 Argon has only a weekly "
+                     "limit (n/a for 5 hours)." + ("" if short else " The account must not be used for anything else "
+                                                                     "during a run.")))
+        return out
+
+    def limitations():
+        out = [P("Limitations and future work", "h2")]
+        sep = _separation_note(data, models)
+        if sep and compact:
+            sep += f" Confidence intervals per benchmark are in {T('t_acc')}."
+        for t in ["Small samples per benchmark to preserve the quota; a larger preset (e.g. <i>standard</i>) gives firmer "
+                  "numbers. " + sep,
+                  "Public datasets may appear in training data" + ("." if legacy else
+                                                                     "; HMMT February 2026 is the most recent set."),
+                  f"The main runs use <i>{effort_txt}</i> effort; only wrong answers are retried at high. A full effort "
+                  "ladder (low for every task, medium for the failures, then high), reporting single and cumulative "
+                  "accuracy per step, would show the cheapest effort that solves each task.",
+                  "The benchmark suite was selected by Claude (Anthropic), one of the model families under test, so it "
+                  "may favour tasks on which Claude models do well. In the near future we will repeat the study on "
+                  "suites selected by models outside the comparison, such as DeepSeek and Kimi.",
+                  "Escalation re-runs only the answers that were wrong at medium, once: the cumulative accuracy assumes "
+                  "that an answer correct at medium would stay correct at high, and a single re-run cannot separate the "
+                  "effect of the higher effort from run-to-run variance (re-running the same tasks at medium would).",
+                  "Some API prices come from third-party sources (†)."]:
+            out.append(B(t))
+        return out
+
+    closing = P(f"Read together, {T('t_summary')}, {T('t_correct')} and {F('f_value')} answer the student's question: "
+                "the best plan is the one whose models stay accurate on the tasks that matter while leaving enough weekly "
+                "room. The conclusions are indicative: samples are small, quotas depend on each account's plan and state, "
+                "and plans run by different people are comparable only in relative terms.")
+    key_findings = [P("Key findings", "h2")] + [B(t) for name, t in findings if name not in ("agy_reasoning", "verbose")]
+
+    # ------------------------------------------------------------ front matter
     S = [P(TITLE, "title"), P(SUBTITLE, "sub"), P("<b>" + " · ".join(AUTHORS) + "</b>", "sub"),
          P(f"Runs from {first} to {last} · generated {dt.date.today().isoformat()}", "sub")]
-
     abs_txt = (
         "A student choosing a $20 subscription can find endless comparisons of model quality, but quality is only "
         "half of the answer: a very strong model that can be used for five prompts a week is worth less than a weaker "
@@ -386,8 +690,6 @@ def _story(data, models, summ, pending, figs):
         S.append(P("<b>Note.</b> Not yet run: " + ", ".join(m["label"] for m in pending) + ". Running "
                    "<font face='Mono'>uv run bench.py run --backend " + "|".join(sorted({m['backend'] for m in pending}))
                    + "</font> on a machine with that subscription adds them; every table and figure is rebuilt.", "abs"))
-
-    # 1
     S += [P("1. Introduction", "h1"),
           P("Each provider sells a $20/month plan (ChatGPT Plus, Claude Pro, Google AI Pro) that gives access to both a "
             "flagship model and cheaper, faster ones, each with a 5-hour and a weekly usage limit. Which plan gets the "
@@ -395,240 +697,49 @@ def _story(data, models, summ, pending, figs):
             "consumes, and how long it takes. We measure all three on the same tasks, at the same reasoning effort "
             f"(<i>{effort_txt}</i>); how the picture changes with the effort level is left to future work.")]
 
-    # 2
-    S += [P("2. Setup", "h1"), P("2.1 Plans and models", "h2"),
-          P("Every model is called non-interactively through its plan's CLI, one question per request, in an empty "
-            "temporary directory. Claude Code runs with every tool disabled; the agy and Codex agents keep their tools, "
-            "but the prompt forbids them and their sandbox restricts them."
-            + ("" if legacy else " The agy and Claude Code runs used one machine and account, the Codex runs another "
-               "machine, account and network: times and quotas are comparable across these two groups only in "
-               "relative terms."))]
-    rows = [["Plan", "CLI", "Model", "Model id", "Effort", "API price $/M tokens<br/>in · cache · out", "Status"]]
-    table_models = {(m["backend"], m["key"]): m for m in models} if legacy else \
-        {bk: next((x for x in models if (x["backend"], x["key"]) == bk), m) for bk, m in all_models().items()}
-    for (b, key), m in table_models.items():
-        pr = price_for(m.get("pricing", ""), last or None)
-        done = any(x["backend"] == b and x["key"] == key for x in models)
-        rows.append([settings[b].get("plan", "–").split(" (")[0], b, m["label"], f"<font face='Mono'>{m['cli_model']}</font>",
-                     m.get("effort", "–"),
-                     (f"{num(pr['input'], 2)} · {num(pr.get('cached_input', pr['input']), 3)} · {num(pr['output'], 2)}"
-                      + ("" if pr.get("confidence") == "official" else "†")) if pr else "–",
-                     "run" if done else "<i>pending</i>"])
-    S += [table(rows, [24 * mm, 12 * mm, 33 * mm, 42 * mm, 14 * mm, 32 * mm, 13 * mm],
-                groups=[b for b, _ in table_models]),
-          P("Table 1. Plans and models. API prices only serve to express each answer's cost in dollars; "
-            "† = third-party source, to be checked against the provider's pricing page.", "cap")]
+    if compact:
+        # ------------------------------------------------------------ compact body
+        listing = "; ".join(f"<b>{plan_of(b)}</b> ({b}): " + ", ".join(m["label"] for m in models if m["backend"] == b)
+                            for b in ("agy", "claude", "codex") if any(m["backend"] == b for m in models))
+        S += [P("2. Setup", "h1"),
+              P(f"Models under test, at <i>{effort_txt}</i> effort: {listing}. Model ids and the API prices used for "
+                f"the cost figures are in {T('t_models')}. " + calling),
+              bench_intro] + benches_table()
+        S += metrics(short=True)
+        S += [NextPageTemplate("landscape"), PageBreak(), P("4. Results", "h1"),
+              P(f"{T('t_summary')} is the main result: for each model, quality, cost, tokens, time and quota over the "
+                "whole suite. The appendix holds the per-benchmark results, the quota and accuracy charts, the time of "
+                "every task and the consumption clusters.")] + summary_table()
+        S += [NextPageTemplate("portrait"), PageBreak(), fig_value, fig_tok]
+        if esc:
+            S += [P("4.1 Escalating wrong answers to high effort", "h2"), esc_intro] + esc_table()
+        S += [P("5. Discussion", "h1")] + key_findings + correct_table() + [closing] + limitations()
 
-    S += [PageBreak(), P("2.2 Benchmarks", "h2"),
-          P(("This run used the first version of the suite: widely used benchmarks whose answers can be checked by code. "
-             "Several of them proved close to saturation, which is why later runs use harder ones."
-             if legacy else
-             "Classic benchmarks (HumanEval, GSM8K, MATH, AIME 2024) are saturated, so we use recent or deliberately hard "
-             "ones whose answers can be checked by code.") + " Items are frozen with a fixed seed and pinned in "
-            "<font face='Mono'>data/suite.lock.json</font>, so results produced on different machines cover the same tasks.")]
-    rows = [["Benchmark", "Area", "Tasks", "Scoring"]]
-    for b in benches:
-        sp = bench_info(b)
-        rows.append([sp["label"], sp["area"], str(lock["benchmarks"][b]["n"]), sp["verification"]])
-    S += [table(rows, [42 * mm, 36 * mm, 13 * mm, 79 * mm]),
-          P(("Table 2. Benchmarks (first suite version). Generated code ran in a separate <font face='Mono'>python -I</font> "
-             "process with a 60 s limit per program. " if legacy else
-             "Table 2. Benchmarks. LiveCodeBench problems date from January–April 2025 (hard only), HMMT from February "
-             "2026. Code runs in an isolated process (on macOS also sandboxed: no network, no writes outside a temporary "
-             "directory), 10 s per hidden test."),
-            "cap")]
+        # ------------------------------------------------------------ appendix
+        S += [PageBreak(), P("Appendix", "h1"),
+              P("Supporting tables and figures: models and prices, accuracy per benchmark, quota per task, the time of "
+                "every task, consumption clusters and the per-benchmark detail of escalation and metrics.")]
+        S += models_table() + [fig_quota, fig_acc] + times_block()
+        S += [PageBreak()] + clusters_block("A.1 Consumption and speed clusters")
+        if esc:
+            S += [PageBreak(), P("A.2 Escalation per benchmark", "h2"), fig_esc] + escb_table()
+        S += [NextPageTemplate("landscape"), PageBreak(), P("A.3 Per-benchmark detail", "h2")] + acc_table() \
+            + [Spacer(1, 8)] + detail_table()
+        return S
 
-    # 3
-    S += [P("3. Metrics", "h1")]
-    for t in [
-        "<b>Accuracy</b>: pass@1 with a 95% Wilson interval; the overall score is the unweighted mean over benchmarks.",
-        "<b>Cost per answer</b>: what the request would cost through the API (input, cache reads and writes, output; "
-        "reasoning is billed as output). Also reported per correct answer.",
-        "<b>Tokens</b>: input (with the cached part), output and reasoning as reported by the CLI, agent system "
-        "prompt included. Reasoning is a subset of output, never added twice.",
-        "<b>Time per answer</b>: wall-clock latency of the CLI call (median and 90th percentile). Requests that "
-        f"took over {STALL_MIN_S} s while producing under {STALL_MAX_TPS:.0f} output tokens/s were waiting on the "
-        "provider (queue or rate-limit retries), not generating: they are excluded from time figures only.",
-        "<b>Quota</b>: change of the 5-hour and weekly counters read from the CLI before and after each block of "
-        "requests, and the resulting <b>capacity</b>: correct answers per full 5-hour window or week (wrong answers "
-           "consume quota but do not count).",
-        "<b>Escalation</b>: every task a model got wrong at the main effort is re-run once at <i>high</i> effort, "
-        "kept apart from the main results. We report how many are recovered and the cumulative accuracy "
-        "(main effort plus recovered tasks), with the extra cost, time and quota they took.",
-        "<b>Clusters</b>: models are grouped by consumption (cost and output tokens per answer) and speed (median "
-        "time) with k-means on standardised log values; the number of groups is the one with the best silhouette.",
-    ]:
-        S.append(B(t))
-    S.append(P("Claude Code and Codex report quota in whole percentage points. A model's total is exact to ±1 point; it "
-               "is split across benchmarks by API cost. Totals spanning fewer than "
-               f"{MIN_STEPS} points are marked ≈; a window that barely moved is derived from the other one through the "
-               "account's weekly/5-hour ratio (marked ~); &lt;1% means the counter never moved. Quota is not "
-               "proportional to list prices, so it is never estimated from them. Gemini 4 Argon has only a weekly limit "
-               "(n/a for 5 hours). The account must not be used for anything else during a run."))
-
-    # 4 Results
+    # ------------------------------------------------------------ verbose body (every table and figure inline)
+    S += [P("2. Setup", "h1"), P("2.1 Plans and models", "h2"), P(calling)] + models_table()
+    S += [PageBreak(), P("2.2 Benchmarks", "h2"), bench_intro] + benches_table()
+    S += metrics(short=False)
     S += [NextPageTemplate("landscape"), PageBreak(), P("4. Results", "h1"),
-          P("Table 3 is the main result: for each model, quality, cost, tokens, time and quota over the whole suite.")]
-    hdr = ["Model", "Plan", "Mean<br/>acc.", "Tasks", "Cost per<br/>answer", "Cost per<br/>correct", "Input<br/>tokens",
-           "Output<br/>tokens", "Reason.<br/>tokens", "With<br/>reasoning", "Median<br/>time", "p90<br/>time", "5-hour<br/>quota",
-           "Weekly<br/>quota", "Correct<br/>per 5h", "Correct<br/>per week"]
-    rows = [hdr]
-    for m in models:
-        s = summ[k(m)]
-        t = s["tokens"]
-        n = max(1, s["attempts"])
-        p90 = [c["lat_p90"] for (b, kk, _), c in data["cells"].items() if (b, kk) == k(m) and c["lat_p90"]]
-        rows.append([
-            m["label"], settings[m["backend"]].get("plan", m["backend"]).split(" (")[0], pct(s["acc_macro"]),
-            f"{s['n_done']}/{s['n_target']}", usd(s["cost"] / n if s["cost"] is not None else None),
-            usd(s["cost_per_correct"]), ktok(t.get("input", 0) / n), ktok(t.get("output", 0) / n),
-            ktok(t.get("reasoning", 0) / n), pct(s["thinking_rate"], 0),
-            (num(s["lat_p50"], 1) + " s") if s["lat_p50"] else "–",
-            (num(max(p90), 0) + " s") if p90 else "–", _q(s, "5h"), _q(s, "weekly"),
-            num(s["cap_5h"], 0) if s["cap_5h"] else "–", num(s["cap_weekly"], 0) if s["cap_weekly"] else "–",
-        ])
-    w = [30, 24, 12, 12, 15, 15, 16, 16, 15, 16, 13, 12, 14, 14, 16, 14]
-    scale = lw / (sum(w) * mm)
-    S += [table(rows, [x * mm * scale for x in w], bold_first_col=True, groups=[m["backend"] for m in models]),
-          P("Table 3. Per-model summary. Token and cost figures are means per answer (retries included); quota is the "
-            "total for the suite within the model's plan; capacity = correct answers ÷ quota share. ≈ coarse, ~ derived, "
-            "&lt;1% below resolution, n/a no such limit (section 3). With reasoning = share of answers with at "
-            "least one reasoning token: at a given effort, adaptive models may skip reasoning altogether."
-            + (f" Times exclude {sum(summ[k(m)]['stalled'] for m in models)} stalled request(s) "
-               f"(over {STALL_MIN_S} s at under {STALL_MAX_TPS:.0f} output tokens/s, i.e. queueing or rate-limit retries, "
-               "not generation)." if any(summ[k(m)]['stalled'] for m in models) else ""), "cap")]
-
-    rows = [["Model"] + [bench_info(b)["label"] for b in benches] + ["Mean"]]
-    for m in models:
-        r = [m["label"]]
-        for b in benches:
-            c = data["cells"].get((m["backend"], m["key"], b))
-            r.append("–" if not c or c["acc"] is None else
-                     f"<b>{pct(c['acc'], 0)}</b> <font size=6 color='#52514e'>[{100 * c['ci'][0]:.0f}–"
-                     f"{100 * c['ci'][1]:.0f}] n={c['n_done']}</font>")
-        r.append(f"<b>{pct(summ[k(m)]['acc_macro'])}</b>")
-        rows.append(r)
-    cw = (lw - 38 * mm - 18 * mm) / len(benches)
-    S += [KeepTogether([table(rows, [38 * mm] + [cw] * len(benches) + [18 * mm], bold_first_col=True,
-                              groups=[m["backend"] for m in models]),
-                        P("Table 4. Accuracy per benchmark with 95% confidence interval (instruction following: prompt-level "
-                          "strict accuracy).",
-                          "cap")])]
-
-    S += [NextPageTemplate("portrait"), PageBreak(),
-          _fig(figs["value"], pw, "Figure 1. The student's trade-off: mean accuracy against API cost per answer (top) "
-               "and against the number of correct answers a full weekly limit allows (bottom). Top right is best in the bottom "
-               "panel."),
-          _fig(figs["quota"], pw, "Figure 2. Quota consumed per 10 tasks in the model's plan (hatched: ≈ or ~ values)."),
-          _fig(figs["acc"], pw, "Figure 3. Accuracy per benchmark with 95% confidence intervals."),
-          KeepTogether([_img(figs["tok"], pw * 0.92),
-                        P("Figure 4. Mean tokens per answer. Input includes the CLI's system prompt; reasoning and "
-                          "visible output form the billed output.", "cap")]
-                       + [B(t) for name, t in _findings(data, models, summ) if name in ("agy_reasoning", "verbose")])]
-    if data.get("has_times"):
-        S.append(_fig(figs["times"], pw, "Figure 5. Time per task, one bar per task in suite order and grouped by "
-                      "benchmark: blue = correct, red = wrong (a failed call counts as wrong). Each panel has its own "
-                      "time scale. Provider stalls are clipped and labelled with their real time; medians exclude them."))
-        S.append(P(_times_comment(data["times"])))
-
-    # 4.1 clusters
-    cl = data["clusters"]
-    S += [PageBreak(), P("4.1 Consumption and speed clusters", "h2")]
-    if cl["k"] > 1:
-        S.append(P(f"k-means finds <b>{cl['k']} groups</b> (silhouette {cl['silhouette']:.2f}; above 0.5 the groups are "
-                   "well separated, below 0.25 they are weak). Each group is named after its centre relative to the median "
-                   "model; the tables compare models only with their peers."))
-    S.append(_fig(figs["clusters"], pw, "Figure 6. Consumption and speed clusters (shaded regions). Colour shows the plan; "
-                  "the grouping also uses output tokens, which this projection does not show."))
-    hdr = ["Model", "Plan", "Mean<br/>acc.", "Cost per<br/>answer", "Input<br/>tokens", "Output<br/>tokens",
-           "Reasoning<br/>tokens", "Median<br/>time", "Output<br/>tok/s", "5h quota<br/>/10 tasks", "Weekly<br/>/10 tasks"]
-    w = [27, 19, 11, 14, 12, 12, 18, 13, 12, 15, 15]
-    scale = pw / (sum(w) * mm)
-    for g in cl["groups"]:
-        c = g["center"]
-        rows = [hdr]
-        for m in sorted(g["members"], key=lambda m: -(summ[k(m)]["acc_macro"] or 0)):
-            s_ = summ[k(m)]
-            n = max(1, s_["attempts"])
-            t = s_["tokens"]
-            per10 = lambda wdw: ("–" if s_[f"q_{wdw}"] is None else
-                                 quota_text(s_[f"q_{wdw}"] / n * 10, s_[f"q_{wdw}_method"], None))
-            rows.append([m["label"], charts.plan_name(m["backend"]), pct(s_["acc_macro"]),
-                         usd(s_["cost"] / n if s_["cost"] is not None else None), ktok(t.get("input", 0) / n),
-                         ktok(t.get("output", 0) / n), ktok(t.get("reasoning", 0) / n),
-                         (num(s_["lat_p50"], 1) + " s") if s_["lat_p50"] else "–", num(s_["tps"], 0) if s_["tps"] else "–",
-                         per10("5h"), per10("weekly")])
-        cap = (f"<b>{g['name']}</b>" + (f" — centre: {usd(c['cost'])} and {ktok(c['tokens'])} output tokens per answer, "
-                                        f"{num(c['time'], 0)} s median time." if c else "."))
-        S.append(KeepTogether([Spacer(1, 6), P(cap, "body"), table(rows, [x * mm * scale for x in w], bold_first_col=True)]))
-    if cl["skipped"]:
-        S.append(P("Not clustered (missing cost or time): " + ", ".join(m["label"] for m in cl["skipped"]) + ".", "cap"))
-
-    esc = data.get("escalation") or []
+          P(f"{T('t_summary')} is the main result: for each model, quality, cost, tokens, time and quota over the whole "
+            "suite.")] + summary_table() + acc_table()
+    S += [NextPageTemplate("portrait"), PageBreak(), fig_value, fig_quota, fig_acc, fig_tok] + times_block()
+    S += [PageBreak()] + clusters_block("4.1 Consumption and speed clusters")
     if esc:
-        S += [PageBreak(), P("4.2 Escalating wrong answers to high effort", "h2"),
-              P("Each task a model got wrong at the main effort was re-run once at <i>high</i> effort. A large recovery "
-                "means the model knew how to solve the task and simply did not think enough; a small one means the "
-                "error is a real limit of the model. The cost of escalation is what a student pays in quota for the "
-                "second attempt.")]
-        S.append(_fig(figs["esc"], pw, "Figure 7. Accuracy at the main effort and after re-running the wrong answers at "
-                      "high effort (cumulative)."))
-        hdr = ["Model", "Recovered<br/>/ wrong", "Recovery<br/>rate", "Acc.<br/>main", "Acc.<br/>cumul.",
-               "Cost per<br/>re-run", "Output<br/>per re-run", "Median<br/>time", "Extra<br/>5h quota", "Extra<br/>weekly"]
-        rows = [hdr]
-        for m, e in esc:
-            n = max(1, e["attempts"])
-            q5, qw = e["quota"]["5h"], e["quota"]["weekly"]
-            rows.append([m["label"] + ("" if e["complete"] else " *"), f"{e['recovered']} / {e['wrong']}",
-                         pct(e["recovery_rate"], 0), pct(e["acc_medium"]), pct(e["acc_cumulative"]),
-                         usd(e["cost"] / n), ktok(e["tokens"].get("output", 0) / n),
-                         (num(e["lat_p50"], 0) + " s") if e["lat_p50"] else "–",
-                         quota_text(q5["used"], q5["method"], q5["bound"]), quota_text(qw["used"], qw["method"], qw["bound"])])
-        w = [30, 17, 15, 13, 14, 15, 15, 14, 15, 15]
-        scale = pw / (sum(w) * mm)
-        S += [table(rows, [x * mm * scale for x in w], bold_first_col=True, groups=[m["backend"] for m, _ in esc]),
-              P("Table 6. Escalation of wrong answers to high effort. Accuracies are means over benchmarks; quota is the "
-                "extra share used by the re-runs (≈ coarse, &lt;1% below resolution). * = escalation not finished.",
-                "cap")]
-        bcols = [b for b in benches if any(b in e["benches"] for _, e in esc)]
-        rows = [["Model"] + [bench_info(b)["label"] for b in bcols]]
-        for m, e in esc:
-            rows.append([m["label"]] + [
-                (f"{e['benches'][b]['recovered']} / {e['benches'][b]['wrong']}" if e["benches"].get(b, {}).get("wrong")
-                 else "–") for b in bcols])
-        cw = (pw - 30 * mm) / max(1, len(bcols))
-        S += [KeepTogether([table(rows, [30 * mm] + [cw] * len(bcols), bold_first_col=True,
-                                  groups=[m["backend"] for m, _ in esc]),
-                            P("Table 7. Recovered / wrong answers per benchmark (– = nothing wrong at the main effort).",
-                              "cap")])]
-
-    S += [NextPageTemplate("landscape"), PageBreak(), P("4.3 Per-benchmark detail", "h2")]
-    hdr = ["Benchmark", "Model", "Acc.", "95% CI", "n", "Err.", "Input", "Output", "Reasoning", "Cost per<br/>answer",
-           "Median<br/>time", "p90<br/>time", "5-hour<br/>quota", "Weekly<br/>quota"]
-    rows, keys = [hdr], []
-    for b in benches:
-        for m in models:
-            c = data["cells"].get((m["backend"], m["key"], b))
-            if not c:
-                continue
-            keys.append((b, m["backend"]))
-            n = max(1, c["attempts"])
-            t = c["tokens"]
-            q5, qw = c["quota"]["5h"], c["quota"]["weekly"]
-            rows.append([bench_info(b)["label"], m["label"], pct(c["acc"]),
-                         f"{100 * c['ci'][0]:.0f}–{100 * c['ci'][1]:.0f}%", str(c["n_done"]), str(c["errors"]),
-                         ktok(t.get("input", 0) / n), ktok(t.get("output", 0) / n), ktok(t.get("reasoning", 0) / n),
-                         usd(c["cost"] / n if c["cost"] is not None else None),
-                         (num(c["lat_p50"], 1) + " s") if c["lat_p50"] else "–",
-                         (num(c["lat_p90"], 1) + " s") if c["lat_p90"] else "–",
-                         quota_text(q5["used"], q5["method"], q5["bound"]), quota_text(qw["used"], qw["method"], qw["bound"])])
-    w = [32, 30, 13, 17, 8, 8, 15, 15, 16, 17, 15, 15, 15, 15]
-    scale = lw / (sum(w) * mm)
-    S += [table(rows, [x * mm * scale for x in w], groups=keys),
-          P("Table 5. Metrics per benchmark (means per answer). Err. = requests that failed after retries, counted wrong.",
-            "cap")]
-
-    # 5 Discussion
+        S += [PageBreak(), P("4.2 Escalating wrong answers to high effort", "h2"), esc_intro, fig_esc] + esc_table() \
+            + escb_table()
+    S += [NextPageTemplate("landscape"), PageBreak(), P("4.3 Per-benchmark detail", "h2")] + detail_table()
     S += [NextPageTemplate("portrait"), PageBreak(), P("5. Discussion", "h1")]
     plans = {}
     for m in models:
@@ -636,7 +747,7 @@ def _story(data, models, summ, pending, figs):
     for b, ms in plans.items():
         best = max(ms, key=lambda m: summ[k(m)]["acc_macro"] or 0)
         most = max(ms, key=lambda m: summ[k(m)]["cap_weekly"] or 0)
-        txt = (f"<b>{settings[b].get('plan', b).split(' (')[0]}</b>: most accurate {best['label']} ({pct(summ[k(best)]['acc_macro'])}, "
+        txt = (f"<b>{plan_of(b)}</b>: most accurate {best['label']} ({pct(summ[k(best)]['acc_macro'])}, "
                f"{usd(summ[k(best)]['cost_per_correct'])} per correct answer")
         if summ[k(most)]["cap_weekly"]:
             txt += f"); most correct answers per week {most['label']} (about {num(summ[k(most)]['cap_weekly'], 0)})"
@@ -648,38 +759,5 @@ def _story(data, models, summ, pending, figs):
             top = max(g["members"], key=lambda m: summ[k(m)]["acc_macro"] or 0)
             S.append(B(f"Within <b>{g['name']}</b> the most accurate model is {top['label']} "
                        f"({pct(summ[k(top)]['acc_macro'])})."))
-    S += [P("Key findings", "h2")] + [B(t) for name, t in _findings(data, models, summ)
-                                      if name not in ("agy_reasoning", "verbose")]
-    good = sorted([m for m in models if summ[k(m)]["cap_weekly"]], key=lambda m: -summ[k(m)]["cap_weekly"])
-    if good:
-        rows = [["Model", "Plan", "Mean<br/>acc.", "Correct per<br/>5-hour window", "Correct per<br/>week"]]
-        for m in good:
-            s_ = summ[k(m)]
-            rows.append([m["label"], settings[m["backend"]].get("plan", m["backend"]).split(" (")[0],
-                         pct(s_["acc_macro"]), num(s_["cap_5h"], 0) if s_["cap_5h"] else "–",
-                         num(s_["cap_weekly"], 0)])
-        S += [Spacer(1, 4), KeepTogether([table(rows, [38 * mm, 32 * mm, 20 * mm, 36 * mm, 30 * mm], bold_first_col=True),
-                            P("Table 8. Correct answers a full limit gives, best first: quality and quota in one number. "
-                              "~ and ≈ values of Table 3 carry over.", "cap")])]
-    S.append(P("Read together, Table 3 and Figure 1 answer the student's question: the best plan is the one whose "
-               "models stay accurate on the tasks that matter while leaving enough weekly room. The conclusions are "
-               "indicative: samples are small (see the intervals), quotas depend on each account's plan and state, and "
-               "plans run by different people are comparable only in relative terms."))
-    S += [P("Limitations and future work", "h2")]
-    for t in ["Small samples per benchmark to preserve the quota; a larger preset (e.g. <i>standard</i>) gives firmer numbers. "
-              + _separation_note(data, models),
-              "Public datasets may appear in training data" + ("." if legacy else
-                                                                 "; HMMT February 2026 is the most recent set."),
-              f"The main runs use <i>{effort_txt}</i> effort; only wrong answers are retried at high. A full effort "
-              "ladder (low for every task, medium for the failures, then high), reporting single and cumulative "
-              "accuracy per step, would show the cheapest effort that solves each task.",
-              "The benchmark suite was selected by Claude (Anthropic), one of the model families under test, so it "
-              "may favour tasks on which Claude models do well. In the near future we will repeat the study on "
-              "suites selected by models outside the comparison, such as DeepSeek and Kimi.",
-              "Escalation re-runs only the answers that were wrong at medium, once: the cumulative accuracy assumes that "
-              "an answer correct at medium would stay correct at high, and a single re-run cannot separate the effect "
-              "of the higher effort from run-to-run variance (re-running the same tasks at medium would).",
-              "Some API prices come from third-party sources (†)."]:
-        S.append(B(t))
-
+    S += key_findings + correct_table() + [closing] + limitations()
     return S
